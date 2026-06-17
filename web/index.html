@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syslog Admin - CM Oliveira do Hospital</title>
+    <!-- TailwindCSS para um design limpo e moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTMX para reatividade sem Javascript pesado -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- Ícones Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js para os gráficos dinâmicos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans h-screen flex overflow-hidden">
+
+    <!-- Menu Lateral (Sidebar) -->
+    <aside class="w-64 bg-slate-900 text-white flex flex-col hidden md:flex z-20">
+        <div class="p-6 flex items-center space-x-3 border-b border-slate-800">
+            <i data-lucide="shield-check" class="w-8 h-8 text-blue-400"></i>
+            <div>
+                <h1 class="text-lg font-bold leading-tight">Log Center</h1>
+                <p class="text-xs text-slate-400">Município de O. do Hospital</p>
+            </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <!-- A rota principal '/' simplesmente recarrega a página de forma limpa para mostrar a tabela -->
+            <a href="/" class="flex items-center space-x-3 px-4 py-3 bg-blue-600 text-white rounded-lg transition-colors">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+                <span class="font-medium">Tempo Real</span>
+            </a>
+            <!-- O botão Estatísticas agora chama o Go e injeta os gráficos na div 'main-content' -->
+            <a href="#" hx-get="/stats/view" hx-target="#main-content" class="flex items-center space-x-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                <span class="font-medium">Estatísticas</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors opacity-50 cursor-not-allowed" title="Em breve">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span class="font-medium">Definições</span>
+            </a>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <div class="flex items-center space-x-2 text-sm text-slate-400">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+                <span>Sistema Online e a Processar</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Área Principal -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+        
+        <!-- Topbar com Pesquisa Inteligente -->
+        <header class="bg-white shadow-sm border-b border-slate-200 p-4 flex justify-between items-center z-10">
+            <div class="flex items-center bg-slate-100 rounded-lg px-3 py-2 w-full max-w-md border border-slate-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
+                <i data-lucide="search" class="w-5 h-5 text-slate-400 mr-2"></i>
+                <!-- Input com HTMX: Dispara pesquisa a cada tecla (delay de 300ms) -->
+                <input type="search" 
+                       name="q" 
+                       placeholder="Pesquisar IP, host, app ou erro..." 
+                       class="bg-transparent border-none outline-none w-full text-sm text-slate-700 placeholder-slate-400"
+                       hx-get="/logs" 
+                       hx-trigger="keyup changed delay:300ms, search" 
+                       hx-target="#tabela-logs">
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="flex items-center space-x-3">
+                <button onclick="exportarCSV()" class="flex items-center space-x-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-medium">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>Exportar CSV</span>
+                </button>
+                <button onclick="toggleAutoRefresh()" id="btn-refresh" class="flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium shadow-sm">
+                    <i data-lucide="pause-circle" id="icon-refresh" class="w-4 h-4"></i>
+                    <span id="text-refresh">Pausar Live</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Container da Tabela de Logs e Estatísticas (Com o ID para o HTMX injetar os dados) -->
+        <div class="flex-1 overflow-auto p-6 bg-slate-50" id="main-content">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <table class="min-w-full divide-y divide-slate-200 table-fixed w-full">
+                    
+                    <!-- NOVO CABEÇALHO com 6 colunas ajustadas -->
+                    <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                        <tr>
+                            <th scope="col" class="w-16 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">ID</th>
+                            <th scope="col" class="w-40 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Data / Hora</th>
+                            <th scope="col" class="w-32 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Rede / IP</th>
+                            <th scope="col" class="w-40 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Host / App</th>
+                            <th scope="col" class="w-28 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Gravidade</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mensagem de Log</th>
+                            <th scope="col" class="w-28 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Facilidade</th>
+
+                        </tr>
+                    </thead>
+                    
+                    <!-- Corpo da Tabela gerado pelo HTMX a cada 2s -->
+                    <!-- O hx-include garante que a pesquisa no input não se perde ao atualizar -->
+                    <tbody id="tabela-logs" 
+                           class="bg-white divide-y divide-slate-200" 
+                           hx-get="/logs" 
+                           hx-trigger="every 2s" 
+                           hx-include="[name='q']">
+                        <tr>
+                            <td colspan="7" class="text-center py-12 text-slate-500 animate-pulse">
+                                <i data-lucide="loader-2" class="w-8 h-8 mx-auto animate-spin text-blue-500 mb-3"></i>
+                                A inicializar os motores de extração Syslog...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Carrega os ícones SVG do Lucide
+        lucide.createIcons();
+
+        // Lógica de Controlo de Atualização (Live Refresh)
+        let isPaused = false;
+        function toggleAutoRefresh() {
+            const tbody = document.getElementById('tabela-logs');
+            const btnText = document.getElementById('text-refresh');
+            const btnIcon = document.getElementById('icon-refresh');
+            const btn = document.getElementById('btn-refresh');
+
+            if (isPaused) {
+                // Estado: Retomar
+                tbody.setAttribute('hx-trigger', 'every 2s');
+                htmx.process(tbody); 
+                
+                btnText.innerText = "Pausar Live";
+                btn.classList.replace('bg-slate-100', 'bg-blue-50');
+                btn.classList.replace('text-slate-700', 'text-blue-700');
+                btn.classList.replace('border-slate-300', 'border-blue-200');
+                btnIcon.setAttribute('data-lucide', 'pause-circle');
+            } else {
+                // Estado: Pausar
+                tbody.setAttribute('hx-trigger', 'none');
+                htmx.process(tbody);
+                
+                btnText.innerText = "Retomar Live";
+                btn.classList.replace('bg-blue-50', 'bg-slate-100');
+                btn.classList.replace('text-blue-700', 'text-slate-700');
+                btn.classList.replace('border-blue-200', 'border-slate-300');
+                btnIcon.setAttribute('data-lucide', 'play-circle');
+            }
+            lucide.createIcons(); // Força a atualização do ícone SVG
+            isPaused = !isPaused;
+        }
+
+        // Lógica de exportação respeitando o filtro de pesquisa atual
+        function exportarCSV() {
+            const query = document.querySelector('input[name="q"]').value;
+            window.location.href = `/export?q=${encodeURIComponent(query)}`;
+        }
+    </script>
+</body>
+</html>

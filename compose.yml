@@ -1,0 +1,77 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: syslog_worker_redis
+    ports:
+      - "6379:6379"
+    restart: always
+    volumes:
+      - redis_data:/data
+    networks:
+      - log_network
+  
+  db:
+    image: postgres:15-alpine
+    container_name: syslog_database
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - log_network
+
+  collector:
+    build: ./collector
+    container_name: syslog_collector
+    environment:
+      REDIS_URL: ${REDIS_URL}
+    ports:
+      - "514:514/udp"
+      - "514:514/tcp"
+    depends_on:
+      - redis
+    restart: always
+    networks:
+      - log_network
+  
+  web:
+    build: ./web
+    container_name: syslog_web
+    environment:
+      REDIS_URL: ${REDIS_URL}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: ${DB_HOST}
+    depends_on:
+      - redis
+      - db
+    restart: always
+    networks:
+      - log_network
+  
+  nginx:
+    image: nginx:alpine
+    container_name: syslog_nginx
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+    restart: always
+    networks:
+      - log_network
+    
+volumes:
+  pg_data:
+  redis_data:
+
+networks:
+  log_network:
+    driver: bridge
