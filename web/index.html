@@ -86,7 +86,7 @@
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <table class="min-w-full divide-y divide-slate-200 table-fixed w-full">
                     
-                    <!-- NOVO CABEÇALHO com 6 colunas ajustadas -->
+                    <!-- CABEÇALHO DA TABELA -->
                     <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
                         <tr>
                             <th scope="col" class="w-16 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">ID</th>
@@ -95,8 +95,6 @@
                             <th scope="col" class="w-40 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Host / App</th>
                             <th scope="col" class="w-28 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Gravidade</th>
                             <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mensagem de Log</th>
-                            <th scope="col" class="w-28 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Facilidade</th>
-
                         </tr>
                     </thead>
                     
@@ -108,9 +106,9 @@
                            hx-trigger="every 2s" 
                            hx-include="[name='q']">
                         <tr>
-                            <td colspan="7" class="text-center py-12 text-slate-500 animate-pulse">
+                            <td colspan="6" class="text-center py-12 text-slate-500 animate-pulse">
                                 <i data-lucide="loader-2" class="w-8 h-8 mx-auto animate-spin text-blue-500 mb-3"></i>
-                                A inicializar os motores de extração Syslog...
+                                A carregar os registos do sistema...
                             </td>
                         </tr>
                     </tbody>
@@ -119,8 +117,69 @@
         </div>
     </main>
 
+    <!-- Backdrop (fundo escuro esfocado) para a janela lateral -->
+    <div id="drawer-backdrop" class="fixed inset-0 bg-slate-900/40 z-40 hidden transition-opacity opacity-0 backdrop-blur-sm" onclick="closeLogDetails()"></div>
+
+    <!-- Janela Lateral (Drawer) de Detalhes do Log -->
+    <div id="log-drawer" class="fixed top-0 right-0 z-50 h-screen p-6 overflow-y-auto transition-transform translate-x-full bg-white w-full max-w-md shadow-2xl border-l border-slate-200 duration-300">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+            <h5 class="text-lg font-bold text-slate-800 flex items-center">
+                <i data-lucide="file-text" class="w-5 h-5 mr-2 text-blue-600"></i>
+                Detalhes do Registo
+            </h5>
+            <button type="button" onclick="closeLogDetails()" class="text-slate-400 bg-slate-50 hover:bg-slate-200 hover:text-slate-900 rounded-lg text-sm w-8 h-8 flex justify-center items-center transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-5">
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">ID / Data e Hora</label>
+                <div class="text-sm font-medium text-slate-900"><span id="detail-id" class="text-slate-500 mr-2"></span><span id="detail-ts"></span></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Origem (IP)</label>
+                    <div class="text-sm font-mono text-slate-800 bg-slate-50 px-3 py-2 rounded-md border border-slate-200" id="detail-ip"></div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Protocolo</label>
+                    <div class="text-sm font-mono text-slate-800 bg-slate-50 px-3 py-2 rounded-md border border-slate-200" id="detail-proto"></div>
+                </div>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Host / Servidor</label>
+                <div class="text-sm font-medium text-slate-800" id="detail-host"></div>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Aplicação & Facility</label>
+                <div class="text-sm font-medium text-slate-800 flex items-center">
+                    <span id="detail-app"></span> 
+                    <span class="text-slate-500 text-xs ml-2 bg-slate-100 px-2 py-0.5 rounded border border-slate-200" id="detail-fac"></span>
+                </div>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Gravidade</label>
+                <div>
+                    <span id="detail-sev" class="px-2.5 py-1 text-xs uppercase tracking-wider font-bold rounded-md border bg-slate-100 text-slate-800"></span>
+                </div>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span>Mensagem (Payload Completo)</span>
+                    <button onclick="copiarPayload()" class="text-blue-500 hover:text-blue-700 flex items-center font-semibold uppercase tracking-wider transition-colors">
+                        <i data-lucide="copy" class="w-3 h-3 mr-1"></i> Copiar
+                    </button>
+                </label>
+                <!-- Terminal escuro para leitura do Payload longo -->
+                <div class="p-4 bg-slate-900 text-green-400 font-mono text-xs rounded-xl border border-slate-700 overflow-x-auto whitespace-pre-wrap leading-relaxed shadow-inner" id="detail-payload" style="max-height: 400px; overflow-y: auto;">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Carrega os ícones SVG do Lucide
+        // Inicializar os ícones
         lucide.createIcons();
 
         // Lógica de Controlo de Atualização (Live Refresh)
@@ -132,7 +191,7 @@
             const btn = document.getElementById('btn-refresh');
 
             if (isPaused) {
-                // Estado: Retomar
+                // Retomar
                 tbody.setAttribute('hx-trigger', 'every 2s');
                 htmx.process(tbody); 
                 
@@ -142,7 +201,7 @@
                 btn.classList.replace('border-slate-300', 'border-blue-200');
                 btnIcon.setAttribute('data-lucide', 'pause-circle');
             } else {
-                // Estado: Pausar
+                // Pausar
                 tbody.setAttribute('hx-trigger', 'none');
                 htmx.process(tbody);
                 
@@ -152,14 +211,76 @@
                 btn.classList.replace('border-blue-200', 'border-slate-300');
                 btnIcon.setAttribute('data-lucide', 'play-circle');
             }
-            lucide.createIcons(); // Força a atualização do ícone SVG
+            lucide.createIcons();
             isPaused = !isPaused;
         }
 
-        // Lógica de exportação respeitando o filtro de pesquisa atual
+        // Lógica de exportação
         function exportarCSV() {
             const query = document.querySelector('input[name="q"]').value;
             window.location.href = `/export?q=${encodeURIComponent(query)}`;
+        }
+        
+        // --- LÓGICA DA JANELA LATERAL (DRAWER) ---
+        function openLogDetails(btn) {
+            // Pausar a tabela automaticamente para o utilizador conseguir ler em paz
+            if (!isPaused) toggleAutoRefresh();
+
+            // Preencher os dados usando os atributos injetados pelo backend em Go
+            document.getElementById('detail-id').innerText = '#' + btn.getAttribute('data-id');
+            document.getElementById('detail-ts').innerText = btn.getAttribute('data-ts');
+            document.getElementById('detail-ip').innerText = btn.getAttribute('data-ip');
+            document.getElementById('detail-proto').innerText = btn.getAttribute('data-proto');
+            document.getElementById('detail-host').innerText = btn.getAttribute('data-host');
+            document.getElementById('detail-app').innerText = btn.getAttribute('data-app');
+            document.getElementById('detail-fac').innerText = btn.getAttribute('data-fac');
+            
+            // Adicionar a cor correta ao Badge de gravidade
+            const sev = btn.getAttribute('data-sev');
+            const sevEl = document.getElementById('detail-sev');
+            sevEl.innerText = sev;
+            sevEl.className = 'px-2.5 py-1 text-xs uppercase tracking-wider font-bold rounded-md border inline-block';
+            
+            if (sev === 'Emergência') sevEl.classList.add('bg-red-100', 'text-red-800', 'border-red-200');
+            else if (sev === 'Alerta') sevEl.classList.add('bg-orange-100', 'text-orange-800', 'border-orange-200');
+            else if (sev === 'Crítico') sevEl.classList.add('bg-red-50', 'text-red-700', 'border-red-200');
+            else if (sev === 'Erro') sevEl.classList.add('bg-red-50', 'text-red-600', 'border-red-100');
+            else if (sev === 'Aviso') sevEl.classList.add('bg-yellow-50', 'text-yellow-700', 'border-yellow-200');
+            else if (sev === 'Notice') sevEl.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-200');
+            else if (sev === 'Debug') sevEl.classList.add('bg-slate-100', 'text-slate-600', 'border-slate-200');
+            else sevEl.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-200'); 
+
+            // Preencher o Payload
+            document.getElementById('detail-payload').innerText = btn.getAttribute('data-payload');
+
+            // Mostrar a Janela
+            const backdrop = document.getElementById('drawer-backdrop');
+            const drawer = document.getElementById('log-drawer');
+            
+            backdrop.classList.remove('hidden');
+            setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+            drawer.classList.remove('translate-x-full');
+        }
+
+        function closeLogDetails() {
+            const backdrop = document.getElementById('drawer-backdrop');
+            const drawer = document.getElementById('log-drawer');
+            
+            // Ocultar a janela suavemente
+            drawer.classList.add('translate-x-full');
+            backdrop.classList.add('opacity-0');
+            setTimeout(() => backdrop.classList.add('hidden'), 300);
+        }
+        
+        function copiarPayload() {
+            const payload = document.getElementById('detail-payload').innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = payload;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert("Mensagem copiada para a área de transferência!");
         }
     </script>
 </body>
