@@ -87,6 +87,8 @@ func main() {
 	// NOVAS ROTAS: Ferramentas do Sistema
 	http.HandleFunc("/tools/view", authMiddleware(serveToolsView))
 	http.HandleFunc("/tools/download", authMiddleware(downloadTool))
+	http.Handle("/output.css", http.FileServer(http.Dir(".")))
+	http.Handle("/script.js", http.FileServer(http.Dir(".")))
 
 	log.Println("Painel de Administração ativo na porta 8080 (Interno)")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

@@ -1,39 +1,45 @@
+// Inicializar os ícones do Lucide
 lucide.createIcons();
 
 let isPaused = false;
+
+// Função para Pausar/Retomar a tabela de logs
 function toggleAutoRefresh() {
     const tbody = document.getElementById('tabela-logs');
-    if(!tbody) return; 
+    if (!tbody) return; // Segurança para não dar erro noutras vistas (Estatísticas, Ferramentas)
     
     const btnText = document.getElementById('text-refresh');
     const btnIcon = document.getElementById('icon-refresh');
     const btn = document.getElementById('btn-refresh');
 
     if (isPaused) {
+        // Retomar
         tbody.setAttribute('hx-trigger', 'every 2s');
         htmx.process(tbody); 
         btnText.innerText = "Pausar Live";
-        btn.classList.replace('bg-slate-100', 'bg-blue-50');
-        btn.classList.replace('text-slate-700', 'text-blue-700');
-        btn.classList.replace('border-slate-300', 'border-blue-200');
+        
+        // Trocar as classes encapsuladas (Ver styles.css)
+        btn.classList.replace('btn-emerald', 'btn-blue'); 
         btnIcon.setAttribute('data-lucide', 'pause-circle');
     } else {
+        // Pausar
         tbody.setAttribute('hx-trigger', 'none');
         htmx.process(tbody);
         btnText.innerText = "Retomar Live";
-        btn.classList.replace('bg-blue-50', 'bg-slate-100');
-        btn.classList.replace('text-blue-700', 'text-slate-700');
-        btn.classList.replace('border-blue-200', 'border-slate-300');
+        
+        // Trocar as classes encapsuladas
+        btn.classList.replace('btn-blue', 'btn-emerald');
         btnIcon.setAttribute('data-lucide', 'play-circle');
     }
     lucide.createIcons();
     isPaused = !isPaused;
 }
 
-// Lógica de exportação agora apanha TODOS os filtros do formulário
+// Lógica de exportação: Apanha os filtros de Texto e Gravidade
 function exportarCSV() {
     const form = document.getElementById('filter-form');
-    if(form) {
+    if (form) {
+        // Pega em todos os dados do form (input 'q' e select 'sev') e constrói o URL
         const query = new URLSearchParams(new FormData(form)).toString();
         window.location.href = `/export?${query}`;
     } else {
@@ -41,9 +47,12 @@ function exportarCSV() {
     }
 }
 
+// --- LÓGICA DA JANELA LATERAL (DRAWER) ---
 function openLogDetails(btn) {
+    // Pausa a tabela automaticamente para o utilizador ler tranquilamente
     if (!isPaused) toggleAutoRefresh();
 
+    // Preencher os dados usando os atributos injetados pelo backend
     document.getElementById('detail-id').innerText = '#' + btn.getAttribute('data-id');
     document.getElementById('detail-ts').innerText = btn.getAttribute('data-ts');
     document.getElementById('detail-ip').innerText = btn.getAttribute('data-ip');
@@ -52,22 +61,28 @@ function openLogDetails(btn) {
     document.getElementById('detail-app').innerText = btn.getAttribute('data-app');
     document.getElementById('detail-fac').innerText = btn.getAttribute('data-fac');
     
+    // Adicionar a classe correta ao Badge de gravidade (usando as classes do styles.css)
     const sev = btn.getAttribute('data-sev');
     const sevEl = document.getElementById('detail-sev');
     sevEl.innerText = sev;
-    sevEl.className = 'px-2.5 py-1 text-xs uppercase tracking-wider font-bold rounded-md border inline-block';
     
-    if (sev === 'Emergência') sevEl.classList.add('bg-red-100', 'text-red-800', 'border-red-200');
-    else if (sev === 'Alerta') sevEl.classList.add('bg-orange-100', 'text-orange-800', 'border-orange-200');
-    else if (sev === 'Crítico') sevEl.classList.add('bg-red-50', 'text-red-700', 'border-red-200');
-    else if (sev === 'Erro') sevEl.classList.add('bg-red-50', 'text-red-600', 'border-red-100');
-    else if (sev === 'Aviso') sevEl.classList.add('bg-yellow-50', 'text-yellow-700', 'border-yellow-200');
-    else if (sev === 'Notice') sevEl.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-200');
-    else if (sev === 'Debug') sevEl.classList.add('bg-slate-100', 'text-slate-600', 'border-slate-200');
-    else sevEl.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-200'); 
+    // Reset da classe base
+    sevEl.className = 'badge';
+    
+    // Adicionar a cor
+    if (sev === 'Emergência') sevEl.classList.add('badge-emergencia');
+    else if (sev === 'Alerta') sevEl.classList.add('badge-alerta');
+    else if (sev === 'Crítico') sevEl.classList.add('badge-critico');
+    else if (sev === 'Erro') sevEl.classList.add('badge-erro');
+    else if (sev === 'Aviso') sevEl.classList.add('badge-aviso');
+    else if (sev === 'Notice') sevEl.classList.add('badge-notice');
+    else if (sev === 'Debug') sevEl.classList.add('badge-debug');
+    else sevEl.classList.add('badge-info'); 
 
+    // Preencher o Payload completo no Terminal Escuro
     document.getElementById('detail-payload').innerText = btn.getAttribute('data-payload');
 
+    // Mostrar a Janela Lateral (Drawer) com animação
     const backdrop = document.getElementById('drawer-backdrop');
     const drawer = document.getElementById('log-drawer');
     backdrop.classList.remove('hidden');
@@ -78,11 +93,14 @@ function openLogDetails(btn) {
 function closeLogDetails() {
     const backdrop = document.getElementById('drawer-backdrop');
     const drawer = document.getElementById('log-drawer');
+    
+    // Ocultar a janela suavemente
     drawer.classList.add('translate-x-full');
     backdrop.classList.add('opacity-0');
     setTimeout(() => backdrop.classList.add('hidden'), 300);
 }
 
+// Copiar mensagem rápida
 function copiarPayload() {
     const payload = document.getElementById('detail-payload').innerText;
     const textarea = document.createElement('textarea');
@@ -91,9 +109,13 @@ function copiarPayload() {
     textarea.select();
     document.execCommand('copy');
     document.body.removeChild(textarea);
+    
+    alert("Mensagem copiada para a área de transferência!");
 }
 
-// Se a sessão expirar nos pedidos de fundo do HTMX, redireciona suavemente
+// Se a sessão expirar nos pedidos de fundo do HTMX, redireciona suavemente para o Login
 document.body.addEventListener('htmx:responseError', function(evt) {
-    if(evt.detail.xhr.status === 401) window.location.href = '/login';
+    if(evt.detail.xhr.status === 401) {
+        window.location.href = '/login';
+    }
 });
