@@ -1,311 +1,411 @@
-# SyslogCollector
+# 🛡️ SyslogCollector
 
-Centralized Syslog Collection, Processing and Monitoring Platform built with Go, Redis, PostgreSQL and HTMX.
+![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-8-DC382D?logo=redis&logoColor=white)
+![HTMX](https://img.shields.io/badge/HTMX-1.9+-3366CC?logo=htmx&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.x-06B6D4?logo=tailwindcss&logoColor=white)
+![Chart.js](https://img.shields.io/badge/Chart.js-4.x-FF6384?logo=chartdotjs&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-Reverse%20Proxy-009639?logo=nginx&logoColor=white)
 
-## Overview
+![RFC3164](https://img.shields.io/badge/Syslog-RFC3164-success)
+![RFC5424](https://img.shields.io/badge/Syslog-RFC5424-success)
+![Redis Pub/Sub](https://img.shields.io/badge/Redis-Pub%2FSub-orange)
+![Policy Engine](https://img.shields.io/badge/Policy%20Engine-Dynamic-blueviolet)
 
-SyslogCollector is a lightweight observability platform designed to collect, normalize, process and visualize Syslog events from heterogeneous environments.
+![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen)
+![Version](https://img.shields.io/badge/Version-v0.7.0-blue)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-The platform supports both modern and legacy Syslog formats, making it suitable for:
+Sistema moderno de recolha, processamento, filtragem e observabilidade de eventos Syslog.
 
-* Windows Servers
-* Linux Servers
-* Firewalls
-* Switches
-* Routers
-* Network Appliances
-* Security Devices
-* Embedded Systems
-
-Instead of storing raw logs directly in a database, SyslogCollector uses a queue-based architecture that decouples ingestion from persistence, increasing reliability and resilience under heavy workloads.
+Desenvolvido em Go, PostgreSQL, Redis, HTMX e Tailwind CSS.
 
 ---
 
-## Architecture
+## 📌 Visão Geral
+
+O SyslogCollector é uma plataforma de observabilidade leve destinada a pequenas e médias infraestruturas.
+
+O sistema permite:
+
+- Receber logs Syslog via UDP e TCP
+- Interpretar mensagens RFC3164 e RFC5424
+- Aplicar políticas de filtragem em tempo real
+- Armazenar eventos em PostgreSQL
+- Visualizar eventos através de dashboard web responsivo
+- Exportar registos para CSV
+- Gerir retenção de dados
+- Obter estatísticas operacionais
+- Administrar o sistema através de interface web
+
+---
+
+## 🏗 Arquitetura
 
 ```text
-                  ┌───────────────┐
-                  │ Syslog Clients│
-                  └───────┬───────┘
-                          │
-               UDP/TCP 514│
-                          ▼
-               ┌─────────────────┐
-               │    Collector    │
-               │ RFC3164 RFC5424 │
-               └────────┬────────┘
-                        │
-                        ▼
-               ┌─────────────────┐
-               │      Redis      │
-               │ Event Queue     │
-               └────────┬────────┘
-                        │
-                        ▼
-               ┌─────────────────┐
-               │   Web Worker    │
-               │ Persistence     │
-               └────────┬────────┘
-                        │
-                        ▼
-               ┌─────────────────┐
-               │   PostgreSQL    │
-               └────────┬────────┘
-                        │
-                        ▼
-               ┌─────────────────┐
-               │ HTMX Dashboard  │
-               └─────────────────┘
+Dispositivos
+(Firewalls, Switches, Linux, Windows, APs)
+
+            │
+            ▼
+
+      Syslog Collector
+      UDP/TCP :514
+
+            │
+            ▼
+
+     Motor de Políticas
+       (em memória)
+
+            │
+            ▼
+
+          Redis
+      Queue + Pub/Sub
+
+            │
+            ▼
+
+        Web Worker
+
+            │
+            ▼
+
+       PostgreSQL
+
+            │
+            ▼
+
+     Dashboard HTMX
 ```
 
 ---
 
-## Technology Stack
+## 🚀 Tecnologias
 
 ### Backend
 
-* Go
-* PostgreSQL
-* Redis
+- Go
+- PostgreSQL
+- Redis
 
 ### Frontend
 
-* HTMX
-* Tailwind CSS v4
-* Lucide Icons
-* Chart.js
+- HTMX
+- Tailwind CSS
+- Chart.js
+- Lucide Icons
 
-### Infrastructure
+### Infraestrutura
 
-* Docker
-* Docker Compose
-* Nginx
-
-The platform is composed of independent services running in containers. Redis acts as an event buffer and PostgreSQL stores normalized log records.
+- Docker
+- Docker Compose
+- Nginx
 
 ---
 
-## Current Features
+# Funcionalidades
 
-### Log Collection
+## 📥 Recolha de Logs
 
-* Syslog UDP (514)
-* Syslog TCP (514)
-* RFC3164 support
-* RFC5424 support
-* Automatic normalization
+Suporte para:
 
-### Processing
+- Syslog UDP
+- Syslog TCP
+- RFC3164
+- RFC5424
 
-* Queue-based ingestion using Redis
-* Asynchronous persistence
-* Automatic field extraction
-* Severity normalization
-* Facility normalization
+Campos normalizados:
 
-### Dashboard
-
-* Real-time log monitoring
-* Search and filtering
-* Severity filtering
-* Detailed log inspection drawer
-* CSV export
-
-### Analytics
-
-* Severity distribution charts
-* Top active hosts
-* Operational statistics
-
-### Administration
-
-* Authentication system
-* Retention policy management
-* Administrative settings
-* System tools panel
+- Timestamp
+- IP Origem
+- Protocolo
+- Hostname
+- Aplicação
+- Severidade
+- Facility
+- Payload
 
 ---
 
-## Project Structure
+## 📊 Dashboard em Tempo Real
+
+Visualização contínua dos eventos.
+
+Recursos:
+
+- Pesquisa textual
+- Filtro por severidade
+- Atualização automática
+- Pausa de atualização
+- Drawer de detalhes
+- Exportação CSV
+
+---
+
+## 📈 Estatísticas
+
+Painel analítico com:
+
+- Logs recebidos
+- Logs armazenados
+- Logs filtrados
+- Distribuição por severidade
+- Hosts mais ativos
+
+---
+
+## 🛡️ Motor de Políticas Dinâmicas
+
+As políticas são aplicadas antes da persistência.
+
+### Filtros disponíveis
+
+#### Severidade mínima
+
+Exemplo:
 
 ```text
-SyslogCollector
-├── collector/
-│   ├── main.go
-│   ├── Dockerfile
-│   └── go.mod
-│
-├── web/
-│   ├── main.go
-│   ├── index.html
-│   ├── script.js
-│   ├── style.css
-│   ├── output.css
-│   └── Dockerfile
-│
-├── nginx/
-│   └── default.conf
-│
-├── compose.yml
-├── .env.example
-└── README.md
+Erro
+```
+
+Ignora:
+
+```text
+Aviso
+Info
+Debug
 ```
 
 ---
 
-## Installation
+#### Aplicações ignoradas
 
-### Clone Repository
+```text
+nginx
+dnsmasq
+systemd
+```
+
+---
+
+#### Hosts ignorados
+
+```text
+printer01
+switch-lab
+test-server
+```
+
+---
+
+#### Palavras-chave ignoradas
+
+```text
+healthcheck
+heartbeat
+GET /favicon.ico
+```
+
+---
+
+### Atualização em tempo real
+
+Fluxo:
+
+```text
+Dashboard
+    │
+    ▼
+
+PostgreSQL
+    │
+    ▼
+
+Redis
+SET + Publish
+    │
+    ▼
+
+Collector
+Reload automático
+```
+
+Não é necessário reiniciar containers.
+
+---
+
+## 🔐 Autenticação
+
+Autenticação integrada.
+
+Configurações armazenadas:
+
+- Utilizador
+- Palavra-passe
+
+Sessões protegidas por cookie.
+
+---
+
+## 🗄 Retenção Automática
+
+Configuração de retenção em dias.
+
+Exemplo:
+
+```text
+30 dias
+```
+
+Processo automático executado periodicamente.
+
+---
+
+## 📦 Instalação
+
+### Clonar
 
 ```bash
 git clone https://github.com/ghvalentim/SyslogCollector.git
 cd SyslogCollector
 ```
 
-### Create Environment File
+---
+
+### Configurar ambiente
 
 ```bash
 cp .env.example .env
 ```
 
-Configure:
+Editar:
 
 ```env
-DB_USER=postgres
-DB_PASS=password
+DB_HOST=postgres
 DB_NAME=syslog
-DB_HOST=db
+DB_USER=syslog
+DB_PASS=syslog
 
 REDIS_URL=redis:6379
 ```
 
-Based on the provided environment template.
+---
 
-### Start Services
+### Iniciar
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
 ---
 
-## Development Roadmap
+## 🌐 Acesso
 
-### Sprint 1 — Core Collector
-
-* UDP listener
-* TCP listener
-* Redis integration
-* RFC3164 support
-* RFC5424 support
-
-### Sprint 2 — Persistence Layer
-
-* PostgreSQL integration
-* Log normalization
-* Queue workers
-* Retention policies
-
-### Sprint 3 — Dashboard
-
-* HTMX frontend
-* Live updates
-* Filtering
-* Search
-
-### Sprint 4 — Analytics
-
-* Severity statistics
-* Host statistics
-* Dashboard charts
-
-### Sprint 5 — Administrative Panel
-
-* Authentication
-* Settings management
-* System tools
-* CSV export
-
-### Sprint 6 — Modern UI
-
-* Tailwind CSS v4
-* Responsive dashboard
-* Improved navigation
-* Enhanced log details drawer
-
-### Sprint 7 — Log Collection Policies (Planned)
-
-Goal:
-
-Introduce configurable collection policies per deployment.
-
-Features:
-
-* Minimum severity level
-* Ignored applications
-* Ignored hosts
-* Ignored keywords
-* Dynamic policy updates
-* Collection statistics
-* Log filtering before queue insertion
-
-Future flow:
+Dashboard:
 
 ```text
-Receive Log
-      ↓
-Parser
-      ↓
-Policy Engine
-      ↓
-Redis
-      ↓
-Database
+http://localhost:8080
 ```
 
 ---
 
-## Long-Term Vision
-
-The project is evolving beyond a simple Syslog server.
-
-Current direction:
+## 📁 Estrutura
 
 ```text
-Syslog Server
-      ↓
-Log Collector
-      ↓
-Observability Platform
-      ↓
-Lightweight SIEM
+SyslogCollector
+│
+├── collector/
+│   └── main.go
+│
+├── web/
+│   ├── main.go
+│   ├── index.html
+│   ├── script.js
+│   ├── style.css
+│   └── output.css
+│
+├── nginx/
+│   └── default.conf
+│
+├── compose.yml
+├── setup.sh
+└── README.md
 ```
 
-Planned future capabilities:
+---
 
-* Policy engine
-* Alerting system
-* Correlation rules
-* Threat indicators
-* Event prioritization
-* Multi-tenant deployments
-* Security dashboards
-* Notification integrations
+# Roadmap
+
+## Sprint 1
+
+- Recolha UDP
+- Recolha TCP
+- PostgreSQL
+- Redis Queue
+
+## Sprint 2
+
+- Dashboard HTMX
+- Pesquisa
+- Exportação CSV
+
+## Sprint 3
+
+- Autenticação
+- Definições
+
+## Sprint 4
+
+- Estatísticas
+- Gráficos
+
+## Sprint 5
+
+- Drawer de detalhes
+- Interface profissional
+
+## Sprint 6
+
+- Tailwind compilado localmente
+- Otimizações de UI
+
+## Sprint 7 ✅
+
+- Motor de Políticas
+- Redis Pub/Sub
+- Filtros dinâmicos
+- Estatísticas de filtragem
+
+## Sprint 8 (Planeada)
+
+- Classificação automática de origem
+- Regras por Facility
+- Tags automáticas
+- Alertas
+
+## Sprint 9 (Planeada)
+
+- Multiutilizador
+- Auditoria
+- Perfis de acesso
+
+## Sprint 10 (Planeada)
+
+- Kubernetes
+- Alta disponibilidade
+- Clustering
 
 ---
 
-## License
+# Licença
 
-This project is currently distributed as open source.
-
-Feel free to fork, improve and contribute.
+Projeto desenvolvido para fins académicos, laboratoriais e de aprendizagem em observabilidade, redes e desenvolvimento de software.
 
 ---
 
-## Author
-
-Gabriel Valentim
-
-Computer Systems and Programming Student (TPSI)
-
-Portugal
+**SyslogCollector**
+Observabilidade simples, rápida e sem complicações.
