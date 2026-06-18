@@ -14,7 +14,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Log Center">
 
-    <!-- CSS Compilado Localmente (Tailwind) -->
+    <!-- CSS Compilado Localmente (Tailwind via CLI) -->
     <link rel="stylesheet" href="/output.css">
 
     <!-- Bibliotecas Externas (HTMX, Lucide, Chart.js) -->
@@ -34,27 +34,27 @@
             </div>
         </div>
         <nav class="sidebar-nav">
-            <!-- Rota Principal (Logs) -->
             <a href="/" class="nav-item active">
                 <i data-lucide="activity" class="w-5 h-5"></i> 
                 <span class="font-medium">Tempo Real</span>
             </a>
-            <!-- Estatísticas (HTMX) -->
             <a href="#" hx-get="/stats/view" hx-target="#main-content" class="nav-item">
                 <i data-lucide="bar-chart-3" class="w-5 h-5"></i> 
                 <span class="font-medium">Estatísticas</span>
             </a>
-            <!-- Políticas de Logs (HTMX) -->
+            <!-- NOVO MENU DE ALERTAS -->
+            <a href="#" hx-get="/alerts/view" hx-target="#main-content" class="nav-item">
+                <i data-lucide="bell" class="w-5 h-5"></i> 
+                <span class="font-medium">Motor de Alertas</span>
+            </a>
             <a href="#" hx-get="/policies/view" hx-target="#main-content" class="nav-item">
                 <i data-lucide="shield" class="w-5 h-5"></i> 
                 <span class="font-medium">Políticas de Logs</span>
             </a>
-            <!-- Ferramentas de Sistema (HTMX) -->
             <a href="#" hx-get="/tools/view" hx-target="#main-content" class="nav-item">
                 <i data-lucide="wrench" class="w-5 h-5"></i> 
                 <span class="font-medium">Ferramentas</span>
             </a>
-            <!-- Definições (HTMX) -->
             <a href="#" hx-get="/settings/view" hx-target="#main-content" class="nav-item">
                 <i data-lucide="settings" class="w-5 h-5"></i> 
                 <span class="font-medium">Definições</span>
@@ -70,21 +70,34 @@
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                 </span>
-                <span>Sistema Protegido e Online</span>
+                <span>Plataforma Ativa</span>
             </div>
         </div>
     </aside>
 
     <main class="main-container">
         
-        <!-- Topbar com Filtros -->
+        <!-- Topbar com Filtros (Agora com Fonte/Origem!) -->
         <header class="topbar">
-            <form id="filter-form" class="flex items-center space-x-3 w-full max-w-2xl" hx-get="/logs" hx-trigger="change from:select, keyup delay:300ms from:input" hx-target="#tabela-logs">
+            <form id="filter-form" class="flex items-center space-x-3 w-full max-w-3xl" hx-get="/logs" hx-trigger="change from:select, keyup delay:300ms from:input" hx-target="#tabela-logs">
                 <div class="search-container">
                     <i data-lucide="search" class="w-5 h-5 text-slate-400 mr-2"></i>
                     <input type="search" name="q" placeholder="Pesquisar IP, host, app ou erro..." class="search-input">
                 </div>
-                <!-- Dropdown de Filtro de Gravidade -->
+                
+                <!-- Filtro de Origem (NOVO!) -->
+                <select name="source" class="form-input w-auto cursor-pointer hover:bg-slate-200 transition-colors">
+                    <option value="">Todas as Origens</option>
+                    <option value="Firewall">Firewall</option>
+                    <option value="Windows">Windows</option>
+                    <option value="Linux">Linux</option>
+                    <option value="Web">Web</option>
+                    <option value="Network">Network</option>
+                    <option value="DNS">DNS</option>
+                    <option value="DHCP">DHCP</option>
+                </select>
+
+                <!-- Filtro de Gravidade -->
                 <select name="sev" class="form-input w-auto cursor-pointer hover:bg-slate-200 transition-colors">
                     <option value="">Todas as Gravidades</option>
                     <option value="Emergência">Emergência</option>
@@ -99,12 +112,14 @@
             </form>
 
             <div class="flex items-center space-x-3 shrink-0">
-                <!-- Adicionado a class 'btn' juntamente com 'btn-emerald' -->
                 <button onclick="exportarCSV()" class="btn btn-emerald">
                     <i data-lucide="download" class="w-4 h-4"></i> 
-                    <span>Exportar CSV</span>
+                    <span>Exportar</span>
                 </button>
-                <!-- Adicionado a class 'btn' juntamente com 'btn-blue' -->
+                <button onclick="exportarPDF()" class="btn btn-red">
+                    <i data-lucide="file-text" class="w-4 h-4"></i> 
+                    <span>PDF</span>
+                </button>
                 <button onclick="toggleAutoRefresh()" id="btn-refresh" class="btn btn-blue">
                     <i data-lucide="pause-circle" id="icon-refresh" class="w-4 h-4"></i> 
                     <span id="text-refresh">Pausar Live</span>
@@ -112,7 +127,7 @@
             </div>
         </header>
 
-        <!-- Container de Vistas HTMX -->
+        <!-- Container da Tabela -->
         <div class="main-content" id="main-content">
             <div class="card">
                 <table class="min-w-full divide-y divide-slate-200 table-fixed w-full">
@@ -122,13 +137,14 @@
                             <th class="th-cell w-40">Data / Hora</th>
                             <th class="th-cell w-32">Rede / IP</th>
                             <th class="th-cell w-48">Host / App</th>
+                            <th class="th-cell w-32">Origem</th> <!-- NOVA COLUNA -->
                             <th class="th-cell w-28">Gravidade</th>
                             <th class="th-cell">Mensagem</th>
                         </tr>
                     </thead>
                     <tbody id="tabela-logs" class="bg-white divide-y divide-slate-200" hx-get="/logs" hx-trigger="every 2s" hx-include="#filter-form">
                         <tr>
-                            <td colspan="6" class="text-center py-12 text-slate-500 animate-pulse">
+                            <td colspan="7" class="text-center py-12 text-slate-500 animate-pulse">
                                 <i data-lucide="loader-2" class="w-8 h-8 mx-auto animate-spin text-blue-500 mb-3"></i>
                                 A carregar os registos do sistema...
                             </td>
@@ -139,7 +155,7 @@
         </div>
     </main>
 
-    <!-- Drawer de Detalhes e Fundo Escuro -->
+    <!-- Drawer de Detalhes -->
     <div id="drawer-backdrop" class="drawer-backdrop hidden opacity-0" onclick="closeLogDetails()"></div>
 
     <div id="log-drawer" class="drawer-panel translate-x-full">
@@ -174,13 +190,18 @@
                 <label class="drawer-label">Host / Servidor</label>
                 <div class="text-sm font-medium text-slate-800" id="detail-host"></div>
             </div>
-            <div>
-                <label class="drawer-label">Aplicação & Facility</label>
-                <div class="text-sm font-medium text-slate-800 flex items-center">
-                    <span id="detail-app"></span> 
-                    <span class="text-slate-500 text-xs ml-2 bg-slate-100 px-2 py-0.5 rounded border border-slate-200" id="detail-fac"></span>
+            
+            <!-- EXIBIÇÃO CLASSIFICADA -->
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <label class="drawer-label text-slate-500">Classificação / Aplicação & Facility</label>
+                <div class="text-sm font-medium text-slate-800 flex items-center mt-1 flex-wrap gap-2">
+                    <span id="detail-source" class="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded border border-indigo-200 text-xs font-bold"></span>
+                    <span id="detail-app" class="font-bold text-slate-700"></span> 
+                    <span id="detail-facname" class="text-slate-500 text-xs font-semibold px-2 py-0.5 bg-white border border-slate-200 rounded"></span>
+                    <span id="detail-fac" class="hidden"></span>
                 </div>
             </div>
+            
             <div>
                 <label class="drawer-label">Gravidade</label>
                 <div><span id="detail-sev" class="badge"></span></div>
@@ -201,7 +222,7 @@
     <script src="/script.js"></script>
     
     <script>
-        // Lógica simples para realçar o item do menu clicado (como mudamos com HTMX)
+        // Lógica visual para realçar o item ativo no menu lateral
         document.addEventListener('click', function(e) {
             if (e.target.closest('.nav-item')) {
                 document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
