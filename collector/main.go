@@ -3,19 +3,21 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/influxdata/go-syslog/v3"
 	"github.com/influxdata/go-syslog/v3/rfc3164"
 	"github.com/influxdata/go-syslog/v3/rfc5424"
+	"github.com/redis/go-redis/v9"
 )
 
-// LogEntry estrutura do log normalizado
+// Estruturas de Dados
 type LogEntry struct {
 	Timestamp string `json:"timestamp"`
 	SourceIP  string `json:"source_ip"`
@@ -23,11 +25,24 @@ type LogEntry struct {
 	Hostname  string `json:"hostname"`
 	AppName   string `json:"app_name"`
 	Severity  string `json:"severity"`
-	Facility string `json:"facility"`
+	Facility  string `json:"facility"`
 	Payload   string `json:"payload"`
 }
 
-var ctx = context.Background()
+// Estrutura da Política de Logs
+type LogPolicy struct {
+	Enabled         bool     `json:"enabled"`
+	MinimumSeverity string   `json:"minimum_severity"`
+	IgnoredApps     []string `json:"ignored_apps"`
+	IgnoredHosts    []string `json:"ignored_hosts"`
+	IgnoredKeywords []string `json:"ignored_keywords"`
+}
+
+var (
+	ctx          = context.Background()
+	activePolicy LogPolicy
+	policyMutex  sync.RWMutex
+)
 
 func main() {
 	defer func() {
@@ -46,80 +61,146 @@ func main() {
 		log.Fatalf("[ERRO] Falha ao conectar ao Redis: %v", err)
 	}
 
+	// 1. Carregar Política Inicial e Iniciar Escuta de Atualizações (Pub/Sub)
+	loadPolicyFromRedis(rdb)
+	go watchPolicyUpdates(rdb)
+
 	log.Println("Collector ativo nas portas 514 (UDP e TCP), a aguardar logs...")
 
-	// Inicia servidor UDP numa thread paralela
+	// 2. Inicia servidores
 	go startUDPServer(rdb)
-
-	// Inicia servidor TCP na thread principal
 	startTCPServer(rdb)
 }
+
+// --- MOTOR DE POLÍTICAS DE LOGS ---
+
+func loadPolicyFromRedis(rdb *redis.Client) {
+	val, err := rdb.Get(ctx, "active_log_policy").Result()
+	if err == nil {
+		var p LogPolicy
+		if err := json.Unmarshal([]byte(val), &p); err == nil {
+			policyMutex.Lock()
+			activePolicy = p
+			policyMutex.Unlock()
+			log.Println("[POLÍTICAS] Motor de regras atualizado com sucesso via Redis.")
+		}
+	}
+}
+
+func watchPolicyUpdates(rdb *redis.Client) {
+	pubsub := rdb.Subscribe(ctx, "policy_updates")
+	defer pubsub.Close()
+
+	// Fica bloqueado à escuta de mensagens neste canal
+	for range pubsub.Channel() {
+		loadPolicyFromRedis(rdb)
+	}
+}
+
+func ApplyPolicies(rdb *redis.Client, entry *LogEntry) bool {
+	policyMutex.RLock()
+	p := activePolicy
+	policyMutex.RUnlock()
+
+	// Se o motor estiver desligado, aceita tudo
+	if !p.Enabled {
+		return true
+	}
+
+	// 1. Regra: Severidade Mínima
+	sevs := map[string]int{"Emergência": 0, "Alerta": 1, "Crítico": 2, "Erro": 3, "Aviso": 4, "Notice": 5, "Info": 6, "Debug": 7}
+	if sevs[entry.Severity] > sevs[p.MinimumSeverity] {
+		rdb.Incr(ctx, "stats:filtered_severity")
+		rdb.Incr(ctx, "stats:filtered_total")
+		return false // Descarta
+	}
+
+	// 2. Regra: Aplicações Ignoradas
+	for _, app := range p.IgnoredApps {
+		if app != "" && strings.EqualFold(strings.TrimSpace(entry.AppName), strings.TrimSpace(app)) {
+			rdb.Incr(ctx, "stats:filtered_app")
+			rdb.Incr(ctx, "stats:filtered_total")
+			return false
+		}
+	}
+
+	// 3. Regra: Hosts Ignorados
+	for _, host := range p.IgnoredHosts {
+		if host != "" && strings.EqualFold(strings.TrimSpace(entry.Hostname), strings.TrimSpace(host)) {
+			rdb.Incr(ctx, "stats:filtered_host")
+			rdb.Incr(ctx, "stats:filtered_total")
+			return false
+		}
+	}
+
+	// 4. Regra: Palavras-chave Ignoradas
+	payloadLower := strings.ToLower(entry.Payload)
+	for _, kw := range p.IgnoredKeywords {
+		if kw != "" && strings.Contains(payloadLower, strings.ToLower(strings.TrimSpace(kw))) {
+			rdb.Incr(ctx, "stats:filtered_keyword")
+			rdb.Incr(ctx, "stats:filtered_total")
+			return false
+		}
+	}
+
+	// Se sobreviveu a todos os filtros, é para armazenar!
+	return true
+}
+
+// --- SERVIDORES DE REDE ---
 
 func startUDPServer(rdb *redis.Client) {
 	addr := net.UDPAddr{Port: 514, IP: net.ParseIP("0.0.0.0")}
 	conn, err := net.ListenUDP("udp", &addr)
 	if err != nil {
-		log.Fatalf("Erro ao iniciar servidor UDP: %v", err)
+		log.Fatalf("Erro UDP: %v", err)
 	}
 	defer conn.Close()
 
 	buf := make([]byte, 8192)
 	for {
 		n, remoteAddr, err := conn.ReadFromUDP(buf)
-		if err != nil {
-			continue
+		if err == nil {
+			go processAndQueueLog(rdb, remoteAddr.IP.String(), "UDP", string(buf[:n]))
 		}
-		remoteIP := remoteAddr.IP.String()
-		payload := string(buf[:n])
-		go processAndQueueLog(rdb, remoteIP, "UDP", payload)
 	}
 }
 
 func startTCPServer(rdb *redis.Client) {
 	listener, err := net.Listen("tcp", ":514")
 	if err != nil {
-		log.Fatalf("Erro ao iniciar servidor TCP: %v", err)
+		log.Fatalf("Erro TCP: %v", err)
 	}
 	defer listener.Close()
 
 	for {
 		conn, err := listener.Accept()
-		if err != nil {
-			continue
+		if err == nil {
+			go handleTCPConnection(rdb, conn)
 		}
-		go handleTCPConnection(rdb, conn)
 	}
 }
 
 func handleTCPConnection(rdb *redis.Client, conn net.Conn) {
 	defer conn.Close()
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("[ERRO] Panic ao processar conexão TCP: %v\n", r)
-		}
-	}()
+	defer func() { recover() }()
 
 	buf := make([]byte, 8192)
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
-			break // Fim da conexão ou erro de rede
+			break
 		}
-
 		remoteIP := strings.Split(conn.RemoteAddr().String(), ":")[0]
-		payload := string(buf[:n])
-		go processAndQueueLog(rdb, remoteIP, "TCP", payload)
+		go processAndQueueLog(rdb, remoteIP, "TCP", string(buf[:n]))
 	}
 }
 
-func processAndQueueLog(rdb *redis.Client, sourceIP, protocol, rawPayload string) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("[ERRO] Panic ao enfileirar log: %v\n", r)
-		}
-	}()
+// --- PROCESSAMENTO PRINCIPAL ---
 
-	rawPayload = strings.TrimSpace(rawPayload)
+func processAndQueueLog(rdb *redis.Client, sourceIP, protocol, rawPayload string) {
+	defer func() { recover() }()
+	rdb.Incr(ctx, "stats:received_total") // Incrementa contador de entrada
 
 	entry := LogEntry{
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -128,42 +209,38 @@ func processAndQueueLog(rdb *redis.Client, sourceIP, protocol, rawPayload string
 		Hostname:  "-",
 		AppName:   "-",
 		Severity:  "Info",
-		Payload:   rawPayload,
 		Facility:  "-",
+		Payload:   strings.TrimSpace(rawPayload),
 	}
 
-	// 1. Tentar parse RFC5424 (ex: Fluent-bit, Windows WEF)
+	// Parsing RFC5424 / RFC3164
 	p5424 := rfc5424.NewParser()
-	msg, err := p5424.Parse([]byte(rawPayload))
-	if err == nil && msg != nil {
+	if msg, err := p5424.Parse([]byte(entry.Payload)); err == nil && msg != nil {
 		extractSyslogData(&entry, msg)
 	} else {
-		// 2. Tentar RFC3164 (equipamentos de rede mais antigos NAT/Switches)
 		p3164 := rfc3164.NewParser()
-		msg3164, err3164 := p3164.Parse([]byte(rawPayload))
-		if err3164 == nil && msg3164 != nil {
+		if msg3164, err3164 := p3164.Parse([]byte(entry.Payload)); err3164 == nil && msg3164 != nil {
 			extractSyslogData(&entry, msg3164)
 		}
 	}
 
-	jsonData, err := json.Marshal(entry)
-	if err != nil {
-		log.Printf("[ERRO] Falha ao converter log para JSON: %v\n", err)
-		return
+	// **********************************************
+	// INTEGRAÇÃO DO MOTOR DE POLÍTICAS (ROADMAP - PONTO 8)
+	// **********************************************
+	if !ApplyPolicies(rdb, &entry) {
+		return // Descartado pelas regras!
 	}
 
-	// Enviar para a fila Redis
-	err = rdb.LPush(ctx, "syslog_queue", jsonData).Err()
-	if err != nil {
-		log.Printf("[ERRO] Falha ao enviar log para Redis: %v\n", err)
+	// Aprovado: Envia para a Fila do Redis
+	jsonData, err := json.Marshal(entry)
+	if err == nil {
+		rdb.LPush(ctx, "syslog_queue", jsonData)
+		rdb.Incr(ctx, "stats:stored_total") // Incrementa contador de armazenados
 	}
 }
 
-// A Magia acontece aqui: Conversão de tipo segura (Type Assertion) para go-syslog/v3
 func extractSyslogData(entry *LogEntry, msg syslog.Message) {
 	switch m := msg.(type) {
-	
-	// Se for o formato mais moderno (RFC5424)
 	case *rfc5424.SyslogMessage:
 		if m.Timestamp != nil {
 			entry.Timestamp = m.Timestamp.Format(time.RFC3339)
@@ -178,13 +255,11 @@ func extractSyslogData(entry *LogEntry, msg syslog.Message) {
 			entry.Severity = formatSeverity(*m.Severity)
 		}
 		if m.Facility != nil {
-			entry.Facility = formatFacility(*m.Facility)
+			entry.Facility = fmt.Sprint(*m.Facility)
 		}
 		if m.Message != nil {
 			entry.Payload = strings.TrimSpace(*m.Message)
 		}
-		
-	// Se for o formato legado (RFC3164)
 	case *rfc3164.SyslogMessage:
 		if m.Timestamp != nil {
 			entry.Timestamp = m.Timestamp.Format(time.RFC3339)
@@ -199,7 +274,7 @@ func extractSyslogData(entry *LogEntry, msg syslog.Message) {
 			entry.Severity = formatSeverity(*m.Severity)
 		}
 		if m.Facility != nil {
-			entry.Facility = formatFacility(*m.Facility)
+			entry.Facility = fmt.Sprint(*m.Facility)
 		}
 		if m.Message != nil {
 			entry.Payload = strings.TrimSpace(*m.Message)
@@ -207,40 +282,25 @@ func extractSyslogData(entry *LogEntry, msg syslog.Message) {
 	}
 }
 
-// Traduz o nível de severidade numérico (Syslog RFC) para texto amigável
 func formatSeverity(sev uint8) string {
 	switch sev {
-	case 0: return "Emergência"
-	case 1: return "Alerta"
-	case 2: return "Crítico"
-	case 3: return "Erro"
-	case 4: return "Aviso"
-	case 5: return "Notice"
-	case 6: return "Info"
-	case 7: return "Debug"
-	default: return "Info"
-	}
-}
-
-// Traduz o nível de facility numérico (Syslog RFC) para texto amigável
-func formatFacility(fac uint8) string {
-	switch fac {
-	case 0: return "Kernel"
-	case 1: return "User"
-	case 2: return "Mail"
-	case 3: return "System"
-	case 4: return "Security"
-	case 5: return "Syslog"
-	case 6: return "Printer"
-	case 7: return "News"
-	case 8: return "UUCP"
-	case 9: return "Cron"
-	case 10: return "Auth"
-	case 11: return "FTP"
-	case 12: return "NTP"
-	case 13: return "Log Audit"
-	case 14: return "Log Alert"
-	case 15: return "Clock Daemon"
-	default: return "Unknown"
+	case 0:
+		return "Emergência"
+	case 1:
+		return "Alerta"
+	case 2:
+		return "Crítico"
+	case 3:
+		return "Erro"
+	case 4:
+		return "Aviso"
+	case 5:
+		return "Notice"
+	case 6:
+		return "Info"
+	case 7:
+		return "Debug"
+	default:
+		return "Info"
 	}
 }

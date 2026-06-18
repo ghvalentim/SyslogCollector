@@ -14,14 +14,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Log Center">
 
-    <link rel="stylesheet" href="output.css">
-    <link rel="stylesheet" href="style.css">
+    <!-- CSS Compilado Localmente (Tailwind) -->
+    <link rel="stylesheet" href="/output.css">
 
-    <!-- Bibliotecas Externas -->
+    <!-- Bibliotecas Externas (HTMX, Lucide, Chart.js) -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 </head>
 <body class="layout-body">
 
@@ -44,6 +43,11 @@
             <a href="#" hx-get="/stats/view" hx-target="#main-content" class="nav-item">
                 <i data-lucide="bar-chart-3" class="w-5 h-5"></i> 
                 <span class="font-medium">Estatísticas</span>
+            </a>
+            <!-- Políticas de Logs (HTMX) -->
+            <a href="#" hx-get="/policies/view" hx-target="#main-content" class="nav-item">
+                <i data-lucide="shield" class="w-5 h-5"></i> 
+                <span class="font-medium">Políticas de Logs</span>
             </a>
             <!-- Ferramentas de Sistema (HTMX) -->
             <a href="#" hx-get="/tools/view" hx-target="#main-content" class="nav-item">
@@ -73,7 +77,7 @@
 
     <main class="main-container">
         
-        <!-- Topbar com Filtros Robusto -->
+        <!-- Topbar com Filtros -->
         <header class="topbar">
             <form id="filter-form" class="flex items-center space-x-3 w-full max-w-2xl" hx-get="/logs" hx-trigger="change from:select, keyup delay:300ms from:input" hx-target="#tabela-logs">
                 <div class="search-container">
@@ -95,10 +99,12 @@
             </form>
 
             <div class="flex items-center space-x-3 shrink-0">
+                <!-- Adicionado a class 'btn' juntamente com 'btn-emerald' -->
                 <button onclick="exportarCSV()" class="btn btn-emerald">
-                <i data-lucide="download" class="w-4 h-4"></i>
-                <span>Exportar CSV</span>
+                    <i data-lucide="download" class="w-4 h-4"></i> 
+                    <span>Exportar CSV</span>
                 </button>
+                <!-- Adicionado a class 'btn' juntamente com 'btn-blue' -->
                 <button onclick="toggleAutoRefresh()" id="btn-refresh" class="btn btn-blue">
                     <i data-lucide="pause-circle" id="icon-refresh" class="w-4 h-4"></i> 
                     <span id="text-refresh">Pausar Live</span>
@@ -141,7 +147,7 @@
             <h5 class="text-lg font-bold text-slate-800 flex items-center">
                 <i data-lucide="file-text" class="w-5 h-5 mr-2 text-blue-600"></i> Detalhes do Registo
             </h5>
-            <button type="button" onclick="closeLogDetails()" class="btn btn-icon">
+            <button type="button" onclick="closeLogDetails()" class="btn-icon">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -193,5 +199,15 @@
 
     <!-- Referência ao Ficheiro JS Externo -->
     <script src="/script.js"></script>
+    
+    <script>
+        // Lógica simples para realçar o item do menu clicado (como mudamos com HTMX)
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.nav-item')) {
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                e.target.closest('.nav-item').classList.add('active');
+            }
+        });
+    </script>
 </body>
 </html>
