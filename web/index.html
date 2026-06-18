@@ -12,7 +12,6 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Log Center">
     <meta name="application-name" content="Log Center">
 
     <!-- TailwindCSS para um design limpo e moderno -->
@@ -26,7 +25,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans h-screen flex overflow-hidden">
 
-    <!-- Menu Lateral (Sidebar) -->
+    <!-- Menu Lateral -->
     <aside class="w-64 bg-slate-900 text-white flex flex-col hidden md:flex z-20">
         <div class="p-6 flex items-center space-x-3 border-b border-slate-800">
             <i data-lucide="shield-check" class="w-8 h-8 text-blue-400"></i>
@@ -46,6 +45,11 @@
                 <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
                 <span class="font-medium">Estatísticas</span>
             </a>
+            <!-- NOVO: Ferramentas de Sistema (HTMX) -->
+            <a href="#" hx-get="/tools/view" hx-target="#main-content" class="flex items-center space-x-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                <i data-lucide="wrench" class="w-5 h-5"></i>
+                <span class="font-medium">Ferramentas</span>
+            </a>
             <!-- Definições (HTMX) -->
             <a href="#" hx-get="/settings/view" hx-target="#main-content" class="flex items-center space-x-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors cursor-pointer">
                 <i data-lucide="settings" class="w-5 h-5"></i>
@@ -53,7 +57,6 @@
             </a>
         </nav>
         <div class="p-4 border-t border-slate-800 space-y-4">
-            <!-- Botão de Terminar Sessão -->
             <a href="/logout" class="flex items-center space-x-2 text-sm text-slate-400 hover:text-white transition-colors cursor-pointer">
                 <i data-lucide="log-out" class="w-4 h-4"></i>
                 <span>Terminar Sessão</span>
@@ -63,30 +66,37 @@
                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                 </span>
-                <span>Sistema Protegido e Online</span>
+                <span>Sistema Online</span>
             </div>
         </div>
     </aside>
 
-    <!-- Área Principal -->
     <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
         
-        <!-- Topbar com Pesquisa Inteligente -->
-        <header class="bg-white shadow-sm border-b border-slate-200 p-4 flex justify-between items-center z-10">
-            <div class="flex items-center bg-slate-100 rounded-lg px-3 py-2 w-full max-w-md border border-slate-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
-                <i data-lucide="search" class="w-5 h-5 text-slate-400 mr-2"></i>
-                <!-- Input com HTMX: Dispara pesquisa a cada tecla (delay de 300ms) -->
-                <input type="search" 
-                       name="q" 
-                       placeholder="Pesquisar IP, host, app ou erro..." 
-                       class="bg-transparent border-none outline-none w-full text-sm text-slate-700 placeholder-slate-400"
-                       hx-get="/logs" 
-                       hx-trigger="keyup changed delay:300ms, search" 
-                       hx-target="#tabela-logs">
-            </div>
+        <!-- Topbar: AGORA COM FORMULÁRIO DE FILTROS ROBUSTO -->
+        <header class="bg-white shadow-sm border-b border-slate-200 p-4 flex justify-between items-center z-10 gap-4">
+            
+            <!-- Formulário engloba Pesquisa de Texto e Filtro Dropdown -->
+            <form id="filter-form" class="flex items-center space-x-3 w-full max-w-2xl" hx-get="/logs" hx-trigger="change from:select, keyup delay:300ms from:input" hx-target="#tabela-logs">
+                <div class="flex items-center bg-slate-100 rounded-lg px-3 py-2 w-full border border-slate-200 focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+                    <i data-lucide="search" class="w-5 h-5 text-slate-400 mr-2"></i>
+                    <input type="search" name="q" placeholder="Pesquisar IP, host, app ou erro..." class="bg-transparent border-none outline-none w-full text-sm text-slate-700 placeholder-slate-400">
+                </div>
+                <!-- Dropdown de Filtro de Gravidade -->
+                <select name="sev" class="bg-slate-100 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none cursor-pointer hover:bg-slate-200 transition-colors">
+                    <option value="">Todas as Gravidades</option>
+                    <option value="Emergência">Emergência</option>
+                    <option value="Alerta">Alerta</option>
+                    <option value="Crítico">Crítico</option>
+                    <option value="Erro">Erro</option>
+                    <option value="Aviso">Aviso</option>
+                    <option value="Notice">Notice</option>
+                    <option value="Info">Info</option>
+                    <option value="Debug">Debug</option>
+                </select>
+            </form>
 
-            <!-- Botões de Ação -->
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-3 shrink-0">
                 <button onclick="exportarCSV()" class="flex items-center space-x-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-medium">
                     <i data-lucide="download" class="w-4 h-4"></i>
                     <span>Exportar CSV</span>
@@ -98,25 +108,21 @@
             </div>
         </header>
 
-        <!-- Container principal onde o HTMX pode injetar as Estatísticas ou as Definições -->
         <div class="flex-1 overflow-auto p-6 bg-slate-50" id="main-content">
-            
-            <!-- Tabela Inicial de Logs -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <table class="min-w-full divide-y divide-slate-200 table-fixed w-full">
-                    
                     <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
                         <tr>
-                            <th scope="col" class="w-16 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">ID</th>
-                            <th scope="col" class="w-40 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Data / Hora</th>
-                            <th scope="col" class="w-32 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Rede / IP</th>
-                            <th scope="col" class="w-48 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Host / App</th>
-                            <th scope="col" class="w-28 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Gravidade</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mensagem de Log</th>
+                            <th class="w-16 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">ID</th>
+                            <th class="w-40 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Data / Hora</th>
+                            <th class="w-32 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Rede / IP</th>
+                            <th class="w-48 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Host / App</th>
+                            <th class="w-28 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Gravidade</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mensagem</th>
                         </tr>
                     </thead>
-                    
-                    <tbody id="tabela-logs" class="bg-white divide-y divide-slate-200" hx-get="/logs" hx-trigger="every 2s" hx-include="[name='q']">
+                    <!-- O hx-include recolhe todo o conteúdo do formulário (Texto E o Dropdown) a cada refresh automático -->
+                    <tbody id="tabela-logs" class="bg-white divide-y divide-slate-200" hx-get="/logs" hx-trigger="every 2s" hx-include="#filter-form">
                         <tr>
                             <td colspan="6" class="text-center py-12 text-slate-500 animate-pulse">
                                 <i data-lucide="loader-2" class="w-8 h-8 mx-auto animate-spin text-blue-500 mb-3"></i>
@@ -126,14 +132,12 @@
                     </tbody>
                 </table>
             </div>
-
         </div>
     </main>
 
-    <!-- Backdrop (fundo escuro esfocado) para a janela lateral -->
+    <!-- Drawer de Detalhes e Fundo Escuro -->
     <div id="drawer-backdrop" class="fixed inset-0 bg-slate-900/40 z-40 hidden transition-opacity opacity-0 backdrop-blur-sm" onclick="closeLogDetails()"></div>
 
-    <!-- Janela Lateral (Drawer) de Detalhes do Log -->
     <div id="log-drawer" class="fixed top-0 right-0 z-50 h-screen p-6 overflow-y-auto transition-transform translate-x-full bg-white w-full max-w-md shadow-2xl border-l border-slate-200 duration-300">
         <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
             <h5 class="text-lg font-bold text-slate-800 flex items-center">
@@ -145,160 +149,27 @@
         </div>
         
         <div class="space-y-5">
-            <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">ID / Data e Hora</label>
-                <div class="text-sm font-medium text-slate-900"><span id="detail-id" class="text-slate-500 mr-2"></span><span id="detail-ts"></span></div>
-            </div>
+            <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">ID / Data e Hora</label><div class="text-sm font-medium text-slate-900"><span id="detail-id" class="text-slate-500 mr-2"></span><span id="detail-ts"></span></div></div>
             <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Origem (IP)</label>
-                    <div class="text-sm font-mono text-slate-800 bg-slate-50 px-3 py-2 rounded-md border border-slate-200" id="detail-ip"></div>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Protocolo</label>
-                    <div class="text-sm font-mono text-slate-800 bg-slate-50 px-3 py-2 rounded-md border border-slate-200" id="detail-proto"></div>
-                </div>
+                <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Origem (IP)</label><div class="text-sm font-mono text-slate-800 bg-slate-50 px-3 py-2 rounded-md border border-slate-200" id="detail-ip"></div></div>
+                <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Protocolo</label><div class="text-sm font-mono text-slate-800 bg-slate-50 px-3 py-2 rounded-md border border-slate-200" id="detail-proto"></div></div>
             </div>
-            <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Host / Servidor</label>
-                <div class="text-sm font-medium text-slate-800" id="detail-host"></div>
-            </div>
+            <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Host / Servidor</label><div class="text-sm font-medium text-slate-800" id="detail-host"></div></div>
             <div>
                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Aplicação & Facility</label>
-                <div class="text-sm font-medium text-slate-800 flex items-center">
-                    <span id="detail-app"></span> 
-                    <span class="text-slate-500 text-xs ml-2 bg-slate-100 px-2 py-0.5 rounded border border-slate-200" id="detail-fac"></span>
-                </div>
+                <div class="text-sm font-medium text-slate-800 flex items-center"><span id="detail-app"></span> <span class="text-slate-500 text-xs ml-2 bg-slate-100 px-2 py-0.5 rounded border border-slate-200" id="detail-fac"></span></div>
             </div>
-            <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Gravidade</label>
-                <div>
-                    <span id="detail-sev" class="px-2.5 py-1 text-xs uppercase tracking-wider font-bold rounded-md border bg-slate-100 text-slate-800"></span>
-                </div>
-            </div>
+            <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Gravidade</label><div><span id="detail-sev" class="px-2.5 py-1 text-xs uppercase tracking-wider font-bold rounded-md border bg-slate-100 text-slate-800"></span></div></div>
             <div>
                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
-                    <span>Mensagem (Payload Completo)</span>
-                    <button onclick="copiarPayload()" class="text-blue-500 hover:text-blue-700 flex items-center font-semibold uppercase tracking-wider transition-colors">
-                        <i data-lucide="copy" class="w-3 h-3 mr-1"></i> Copiar
-                    </button>
+                    <span>Mensagem Completa</span>
+                    <button onclick="copiarPayload()" class="text-blue-500 hover:text-blue-700 flex items-center font-semibold uppercase tracking-wider transition-colors"><i data-lucide="copy" class="w-3 h-3 mr-1"></i> Copiar</button>
                 </label>
                 <div class="p-4 bg-slate-900 text-green-400 font-mono text-xs rounded-xl border border-slate-700 overflow-x-auto whitespace-pre-wrap leading-relaxed shadow-inner" id="detail-payload" style="max-height: 400px; overflow-y: auto;"></div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Inicializar os ícones
-        lucide.createIcons();
-
-        // Lógica de Controlo de Atualização (Live Refresh)
-        let isPaused = false;
-        function toggleAutoRefresh() {
-            const tbody = document.getElementById('tabela-logs');
-            if(!tbody) return; // Evita erros se estivermos no ecrã de Definições ou Estatísticas
-            
-            const btnText = document.getElementById('text-refresh');
-            const btnIcon = document.getElementById('icon-refresh');
-            const btn = document.getElementById('btn-refresh');
-
-            if (isPaused) {
-                // Retomar
-                tbody.setAttribute('hx-trigger', 'every 2s');
-                htmx.process(tbody); 
-                btnText.innerText = "Pausar Live";
-                btn.classList.replace('bg-slate-100', 'bg-blue-50');
-                btn.classList.replace('text-slate-700', 'text-blue-700');
-                btn.classList.replace('border-slate-300', 'border-blue-200');
-                btnIcon.setAttribute('data-lucide', 'pause-circle');
-            } else {
-                // Pausar
-                tbody.setAttribute('hx-trigger', 'none');
-                htmx.process(tbody);
-                btnText.innerText = "Retomar Live";
-                btn.classList.replace('bg-blue-50', 'bg-slate-100');
-                btn.classList.replace('text-blue-700', 'text-slate-700');
-                btn.classList.replace('border-blue-200', 'border-slate-300');
-                btnIcon.setAttribute('data-lucide', 'play-circle');
-            }
-            lucide.createIcons();
-            isPaused = !isPaused;
-        }
-
-        // Lógica de exportação
-        function exportarCSV() {
-            const queryInput = document.querySelector('input[name="q"]');
-            const query = queryInput ? queryInput.value : '';
-            window.location.href = `/export?q=${encodeURIComponent(query)}`;
-        }
-        
-        // --- LÓGICA DA JANELA LATERAL (DRAWER) ---
-        function openLogDetails(btn) {
-            // Pausa a tabela automaticamente para o utilizador ler tranquilamente
-            if (!isPaused) toggleAutoRefresh();
-
-            // Preencher os dados usando os atributos injetados pelo backend
-            document.getElementById('detail-id').innerText = '#' + btn.getAttribute('data-id');
-            document.getElementById('detail-ts').innerText = btn.getAttribute('data-ts');
-            document.getElementById('detail-ip').innerText = btn.getAttribute('data-ip');
-            document.getElementById('detail-proto').innerText = btn.getAttribute('data-proto');
-            document.getElementById('detail-host').innerText = btn.getAttribute('data-host');
-            document.getElementById('detail-app').innerText = btn.getAttribute('data-app');
-            document.getElementById('detail-fac').innerText = btn.getAttribute('data-fac');
-            
-            // Adicionar a cor correta ao Badge de gravidade
-            const sev = btn.getAttribute('data-sev');
-            const sevEl = document.getElementById('detail-sev');
-            sevEl.innerText = sev;
-            sevEl.className = 'px-2.5 py-1 text-xs uppercase tracking-wider font-bold rounded-md border inline-block';
-            
-            if (sev === 'Emergência') sevEl.classList.add('bg-red-100', 'text-red-800', 'border-red-200');
-            else if (sev === 'Alerta') sevEl.classList.add('bg-orange-100', 'text-orange-800', 'border-orange-200');
-            else if (sev === 'Crítico') sevEl.classList.add('bg-red-50', 'text-red-700', 'border-red-200');
-            else if (sev === 'Erro') sevEl.classList.add('bg-red-50', 'text-red-600', 'border-red-100');
-            else if (sev === 'Aviso') sevEl.classList.add('bg-yellow-50', 'text-yellow-700', 'border-yellow-200');
-            else if (sev === 'Notice') sevEl.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-200');
-            else if (sev === 'Debug') sevEl.classList.add('bg-slate-100', 'text-slate-600', 'border-slate-200');
-            else sevEl.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-200'); 
-
-            // Preencher o Payload e exibir
-            document.getElementById('detail-payload').innerText = btn.getAttribute('data-payload');
-
-            const backdrop = document.getElementById('drawer-backdrop');
-            const drawer = document.getElementById('log-drawer');
-            
-            backdrop.classList.remove('hidden');
-            setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
-            drawer.classList.remove('translate-x-full');
-        }
-
-        function closeLogDetails() {
-            const backdrop = document.getElementById('drawer-backdrop');
-            const drawer = document.getElementById('log-drawer');
-            
-            drawer.classList.add('translate-x-full');
-            backdrop.classList.add('opacity-0');
-            setTimeout(() => backdrop.classList.add('hidden'), 300);
-        }
-        
-        function copiarPayload() {
-            const payload = document.getElementById('detail-payload').innerText;
-            const textarea = document.createElement('textarea');
-            textarea.value = payload;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            // Poderíamos adicionar um pequeno toast de notificação aqui
-            alert("Mensagem copiada para a área de transferência!");
-        }
-
-        // Intercetor HTMX para erros de Autenticação (Redireciona se a sessão expirar no fundo)
-        document.body.addEventListener('htmx:responseError', function(evt) {
-            if(evt.detail.xhr.status === 401) {
-                window.location.href = '/login';
-            }
-        });
-    </script>
+    <script src="/script.js"></script>
 </body>
 </html>

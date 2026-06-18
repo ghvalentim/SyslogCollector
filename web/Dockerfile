@@ -15,6 +15,7 @@ RUN go mod init syslog-web && \
 
 COPY main.go .
 COPY index.html .
+COPY script.js .
 # Compilar binário estático
 RUN CGO_ENABLED=0 GOOS=linux go build -o web main.go
 
@@ -23,4 +24,5 @@ RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --from=builder /app/web .
 COPY --from=builder /app/index.html .
+COPY --from=builder /app/script.js .
 CMD ["./web"]
