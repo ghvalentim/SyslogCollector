@@ -16,11 +16,11 @@ RUN go mod init syslog-web && \
 # Copiar os ficheiros da raiz
 COPY main.go .
 COPY index.html .
-COPY script.js .
-COPY output.css .
 
 # Copiar a nova diretoria de templates HTML
 COPY templates/ ./templates/
+COPY assets/ ./assets/
+COPY app/ ./app/
 
 # Compilar o binário de forma estática
 RUN CGO_ENABLED=0 GOOS=linux go build -o web main.go
@@ -36,13 +36,12 @@ WORKDIR /app
 # Copiar o binário compilado da fase anterior
 COPY --from=builder /app/web .
 
-# Copiar os ficheiros estáticos (HTML, JS, CSS)
 COPY --from=builder /app/index.html .
-COPY --from=builder /app/script.js .
-COPY --from=builder /app/output.css .
 
 # Copiar a pasta de templates na íntegra
 COPY --from=builder /app/templates/ ./templates/
+COPY --from=builder /app/assets/ ./assets/
+COPY --from=builder /app/app/ ./app/
 
 # Executar o serviço
 CMD ["./web"]
