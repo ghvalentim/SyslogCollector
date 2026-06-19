@@ -1,0 +1,47 @@
+{{range .}}
+<tr class="tr-row">
+    <td class="td-cell font-medium text-slate-900">#{{.ID}}</td>
+    <td class="td-cell text-slate-500 whitespace-nowrap">{{.Timestamp}}</td>
+    <td class="td-cell">
+        <div class="font-mono text-slate-700">{{.SourceIP}}</div>
+        <div class="text-xs text-slate-400 mt-0.5">{{.Protocol}}</div>
+    </td>
+    <td class="td-cell">
+        <div class="font-medium text-slate-800 truncate max-w-[150px]" title="{{.Hostname}}">{{.Hostname}}</div>
+        <div class="text-xs text-slate-500 truncate max-w-[150px]" title="{{.AppName}}">{{.AppName}}</div>
+    </td>
+    <td class="td-cell">
+        <span class="px-2 py-1 bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase rounded border border-indigo-200">{{.SourceType}}</span>
+    </td>
+    <td class="td-cell">
+        <span class="badge 
+            {{if eq .Severity "Emergência"}}badge-emergencia
+            {{else if eq .Severity "Alerta"}}badge-alerta
+            {{else if eq .Severity "Crítico"}}badge-critico
+            {{else if eq .Severity "Erro"}}badge-erro
+            {{else if eq .Severity "Aviso"}}badge-aviso
+            {{else if eq .Severity "Notice"}}badge-notice
+            {{else if eq .Severity "Debug"}}badge-debug
+            {{else}}badge-info{{end}}">
+            {{.Severity}}
+        </span>
+    </td>
+    <td class="td-cell font-mono text-xs text-slate-600">
+        <div class="truncate max-w-[200px] xl:max-w-md">{{.Payload}}</div>
+        <button onclick="openLogDetails(this)" 
+            data-id="{{.ID}}" data-ts="{{.Timestamp}}" data-ip="{{.SourceIP}}" 
+            data-proto="{{.Protocol}}" data-host="{{.Hostname}}" data-app="{{.AppName}}" 
+            data-sev="{{.Severity}}" data-fac="{{.Facility}}" data-facname="{{.FacilityName}}" 
+            data-source="{{.SourceType}}" data-payload="{{.Payload}}" 
+            class="mt-1.5 text-blue-600 hover:text-blue-800 hover:underline font-sans font-semibold text-[11px] flex items-center transition-colors">
+            Ver detalhes &rarr;
+        </button>
+    </td>
+</tr>
+{{else}}
+<tr>
+    <td colspan="7" class="text-center py-12 text-slate-500 bg-slate-50">
+        <p class="text-sm font-medium">Nenhum registo encontrado com estes filtros.</p>
+    </td>
+</tr>
+{{end}}

@@ -1,0 +1,28 @@
+<div class="space-y-6 fade-in">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="text-2xl font-bold text-slate-800">Análise e Estatísticas</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="card p-6">
+            <h3 class="text-lg font-semibold text-slate-700 mb-4 flex items-center"><i data-lucide="pie-chart" class="w-5 h-5 mr-2 text-blue-500"></i> Por Gravidade</h3>
+            <div class="relative h-64 w-full"><canvas id="severityChart"></canvas></div>
+        </div>
+        <div class="card p-6">
+            <h3 class="text-lg font-semibold text-slate-700 mb-4 flex items-center"><i data-lucide="network" class="w-5 h-5 mr-2 text-indigo-500"></i> Por Origem</h3>
+            <div class="relative h-64 w-full"><canvas id="sourceChart"></canvas></div>
+        </div>
+        <div class="card p-6">
+            <h3 class="text-lg font-semibold text-slate-700 mb-4 flex items-center"><i data-lucide="server" class="w-5 h-5 mr-2 text-emerald-500"></i> Top Hosts Ativos</h3>
+            <div class="relative h-64 w-full"><canvas id="hostsChart"></canvas></div>
+        </div>
+    </div>
+</div>
+<style>.fade-in { animation: fadeIn 0.3s ease-in-out; }</style>
+<script>
+    lucide.createIcons(); 
+    fetch('/api/stats').then(res => res.json()).then(data => { 
+        new Chart(document.getElementById('severityChart').getContext('2d'), { type: 'doughnut', data: { labels: data.severities.map(s => s.severity), datasets: [{ data: data.severities.map(s => s.count), backgroundColor: data.severities.map(s => ({'Emergência':'#b91c1c','Alerta':'#ea580c','Crítico':'#ef4444','Erro':'#f87171','Aviso':'#eab308','Notice':'#3b82f6','Info':'#10b981','Debug':'#64748b'}[s.severity] || '#cbd5e1')), borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: '65%', plugins:{legend:{position:'bottom'}} } }); 
+        new Chart(document.getElementById('sourceChart').getContext('2d'), { type: 'doughnut', data: { labels: data.sources.map(s => s.source), datasets: [{ data: data.sources.map(s => s.count), backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#64748b'], borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: '65%', plugins:{legend:{position:'bottom'}} } });
+        new Chart(document.getElementById('hostsChart').getContext('2d'), { type: 'bar', data: { labels: data.hosts.map(h => h.hostname), datasets: [{ data: data.hosts.map(h => h.count), backgroundColor: '#3b82f6', borderRadius: 6 }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { borderDash: [4, 4] } }, x: { grid: { display: false } } } } }); 
+    });
+</script>

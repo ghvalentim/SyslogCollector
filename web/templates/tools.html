@@ -1,0 +1,27 @@
+<div class="space-y-6 fade-in">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="text-2xl font-bold text-slate-800">Ferramentas de Sistema</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="tool-card hover:border-blue-300">
+            <div class="tool-icon-box bg-blue-50"><i data-lucide="network" class="text-blue-600"></i></div>
+            <h3 class="text-md font-bold text-slate-800 mb-1">Definições de Rede</h3>
+            <p class="text-xs text-slate-500 mb-4">Abre o painel nativo de rede do Windows.</p>
+            <a href="ms-settings:network" class="inline-flex items-center text-sm font-semibold text-blue-600 hover:underline">Abrir Painel</a>
+        </div>
+        <div class="tool-card hover:border-red-300">
+            <div class="tool-icon-box bg-red-50"><i data-lucide="flame" class="text-red-600"></i></div>
+            <h3 class="text-md font-bold text-slate-800 mb-1">Firewall Avançada</h3>
+            <p class="text-xs text-slate-500 mb-4">Gestor de regras de entrada/saída (wf.msc).</p>
+            <a href="/tools/download?action=firewall" class="inline-flex items-center text-sm font-semibold text-red-600 hover:underline">Gatilho (.bat) <i data-lucide="download" class="w-4 h-4 ml-1"></i></a>
+        </div>
+        <div class="tool-card hover:border-emerald-300">
+            <div class="tool-icon-box bg-emerald-50"><i data-lucide="shield-alert" class="text-emerald-600"></i></div>
+            <h3 class="text-md font-bold text-slate-800 mb-1">Segurança Windows</h3>
+            <p class="text-xs text-slate-500 mb-4">Verifique proteção contra ameaças.</p>
+            <a href="windowsdefender://" class="inline-flex items-center text-sm font-semibold text-emerald-600 hover:underline">Abrir Segurança</a>
+        </div>
+    </div>
+</div>
+<style>.fade-in { animation: fadeIn 0.3s ease-in-out; }</style>
+<script>lucide.createIcons();</script>

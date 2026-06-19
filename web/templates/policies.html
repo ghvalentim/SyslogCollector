@@ -1,0 +1,69 @@
+<div class="space-y-6 fade-in">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="text-2xl font-bold text-slate-800">Motor de Políticas de Logs</h2>
+        <p class="text-sm text-slate-500">Bloqueie lixo na origem para poupar disco e processamento.</p>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="card p-6 xl:col-span-2">
+            <form hx-post="/policies/save" hx-target="#policy-msg" class="space-y-5">
+                <div class="flex items-center space-x-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <input type="checkbox" name="enabled" id="enabled" class="w-5 h-5 text-blue-600 rounded border-gray-300" {{if .Policy.Enabled}}checked{{end}}>
+                    <div><label for="enabled" class="font-bold text-slate-700 cursor-pointer">Ativar Filtros de Bloqueio</label></div>
+                </div>
+
+                <div>
+                    <label class="form-label"><i data-lucide="filter" class="w-4 h-4 inline mr-1 text-slate-400"></i> Severidade Mínima</label>
+                    <select name="min_severity" class="form-input cursor-pointer">
+                        <option value="Debug" {{if eq .Policy.MinimumSeverity "Debug"}}selected{{end}}>Debug (Guardar Tudo)</option>
+                        <option value="Info" {{if eq .Policy.MinimumSeverity "Info"}}selected{{end}}>Info (Padrão)</option>
+                        <option value="Notice" {{if eq .Policy.MinimumSeverity "Notice"}}selected{{end}}>Notice</option>
+                        <option value="Aviso" {{if eq .Policy.MinimumSeverity "Aviso"}}selected{{end}}>Aviso</option>
+                        <option value="Erro" {{if eq .Policy.MinimumSeverity "Erro"}}selected{{end}}>Erro</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label">Aplicações Ignoradas</label>
+                    <input type="text" name="apps" value="{{.AppsStr}}" placeholder="ex: CRON, systemd..." class="form-input">
+                </div>
+
+                <div>
+                    <label class="form-label">Hosts Ignorados</label>
+                    <input type="text" name="hosts" value="{{.HostsStr}}" class="form-input">
+                </div>
+
+                <div>
+                    <label class="form-label">Palavras-chave Ignoradas</label>
+                    <textarea name="keywords" rows="3" class="form-input">{{.KeywordsStr}}</textarea>
+                </div>
+
+                <div class="pt-3">
+                    <button type="submit" class="btn-primary"><i data-lucide="save" class="w-4 h-4 mr-2"></i> Aplicar Políticas</button>
+                </div>
+                <div id="policy-msg" class="mt-4"></div>
+            </form>
+        </div>
+
+        <div class="card p-6 bg-slate-900 text-white flex flex-col justify-between">
+            <div>
+                <h3 class="text-lg font-bold flex items-center text-blue-400 mb-6"><i data-lucide="shield-alert" class="w-5 h-5 mr-2"></i> Tráfego Protegido</h3>
+                <div class="space-y-4 font-mono text-sm">
+                    <div class="flex justify-between border-b border-slate-700 pb-2"><span class="text-slate-400">Recebidos:</span><span class="font-bold text-blue-400">{{.Stats.TotalRecebidos}}</span></div>
+                    <div class="flex justify-between border-b border-slate-700 pb-2"><span class="text-slate-400">Guardados:</span><span class="font-bold text-emerald-400">{{.Stats.TotalGuardados}}</span></div>
+                    <div class="flex justify-between border-b border-slate-700 pb-2 pt-2"><span class="text-slate-300 font-bold">Bloqueados:</span><span class="font-bold text-red-400">{{.Stats.TotalFiltrados}}</span></div>
+                    
+                    <div class="pt-4 space-y-2 text-xs text-slate-400 pl-4 border-l-2 border-slate-700">
+                        <div class="flex justify-between"><span>Por Severidade</span><span>{{.Stats.BySeverity}}</span></div>
+                        <div class="flex justify-between"><span>Por App</span><span>{{.Stats.ByApp}}</span></div>
+                        <div class="flex justify-between"><span>Por Host</span><span>{{.Stats.ByHost}}</span></div>
+                        <div class="flex justify-between"><span>Por Keyword</span><span>{{.Stats.ByKeyword}}</span></div>
+                    </div>
+                </div>
+            </div>
+            <button hx-get="/policies/view" hx-target="#main-content" class="mt-8 text-center text-xs text-slate-400 hover:text-white transition-colors bg-slate-800 py-2 rounded-lg border border-slate-700">Atualizar Contadores</button>
+        </div>
+    </div>
+</div>
+<style>.fade-in { animation: fadeIn 0.3s ease-in-out; }</style>
+<script>lucide.createIcons();</script>

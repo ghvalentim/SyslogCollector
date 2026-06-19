@@ -1,0 +1,28 @@
+<div class="space-y-6 fade-in">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="text-2xl font-bold text-slate-800">Definições do Sistema</h2>
+    </div>
+    <div class="card p-6 max-w-2xl">
+        <form hx-post="/settings/save" hx-target="#settings-msg" class="space-y-5">
+            <div>
+                <label class="form-label"><i data-lucide="clock" class="w-4 h-4 inline mr-1 text-slate-400"></i> Retenção de Logs (Dias)</label>
+                <input type="number" name="retention" value="{{.Retention}}" min="1" class="form-input">
+            </div>
+            <hr class="border-slate-100 my-4">
+            <div>
+                <label class="form-label"><i data-lucide="user" class="w-4 h-4 inline mr-1 text-slate-400"></i> Administrador</label>
+                <input type="text" name="username" value="{{.User}}" required class="form-input">
+            </div>
+            <div>
+                <label class="form-label"><i data-lucide="key" class="w-4 h-4 inline mr-1 text-slate-400"></i> Nova Palavra-passe</label>
+                <input type="password" name="password" placeholder="Deixe vazio para manter a atual" class="form-input">
+            </div>
+            <div class="pt-3">
+                <button type="submit" class="btn-primary"><i data-lucide="save" class="w-4 h-4 mr-2"></i> Guardar</button>
+            </div>
+            <div id="settings-msg" class="mt-4"></div>
+        </form>
+    </div>
+</div>
+<style>.fade-in { animation: fadeIn 0.3s ease-in-out; }</style>
+<script>lucide.createIcons();</script>

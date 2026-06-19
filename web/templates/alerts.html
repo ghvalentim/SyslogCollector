@@ -1,0 +1,62 @@
+<div class="space-y-6 fade-in">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="text-2xl font-bold text-slate-800">Motor de Alertas</h2>
+        <p class="text-sm text-slate-500">Fundação de monitorização para notificação proativa.</p>
+    </div>
+    <div class="card p-6">
+        <h3 class="text-lg font-bold mb-4">Nova Regra de Deteção</h3>
+        <form hx-post="/alerts/save" hx-target="#alert-msg" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div class="md:col-span-2">
+                <label class="form-label">Nome da Regra</label>
+                <input type="text" name="name" placeholder="ex: Falhas críticas na Firewall" required class="form-input">
+            </div>
+            <div>
+                <label class="form-label">Origem</label>
+                <select name="source_type" class="form-input">
+                    <option value="">Qualquer</option>
+                    <option value="Firewall">Firewall</option>
+                    <option value="Windows">Windows</option>
+                    <option value="Linux">Linux</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Palavra-Chave</label>
+                <input type="text" name="keyword" placeholder="ex: failed" class="form-input">
+            </div>
+            <div>
+                <label class="form-label">Ocorrências (X)</label>
+                <input type="number" name="threshold" value="5" class="form-input" required>
+            </div>
+            <div>
+                <label class="form-label">Minutos (Y)</label>
+                <input type="number" name="window" value="5" class="form-input" required>
+            </div>
+            <div class="md:col-span-2">
+                <button type="submit" class="btn-primary w-full"><i data-lucide="plus" class="w-4 h-4 mr-2"></i> Criar Regra ("X em Y minutos")</button>
+            </div>
+        </form>
+        <div id="alert-msg" class="mt-4"></div>
+    </div>
+    
+    <div class="card overflow-hidden">
+        <table class="w-full text-left text-sm">
+            <thead class="table-head">
+                <tr><th class="th-cell">Estado</th><th class="th-cell">Regra</th><th class="th-cell">Condição</th><th class="th-cell">Threshold</th></tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {{range .}}
+                <tr>
+                    <td class="td-cell"><span class="badge {{if .Enabled}}badge-info{{else}}badge-debug{{end}}">{{if .Enabled}}Ativa{{else}}Inativa{{end}}</span></td>
+                    <td class="td-cell font-bold">{{.Name}}</td>
+                    <td class="td-cell text-slate-500">Origem: {{if .SourceType}}{{.SourceType}}{{else}}Qualquer{{end}} | Chave: {{if .Keyword}}{{.Keyword}}{{else}}N/A{{end}}</td>
+                    <td class="td-cell font-mono">{{.Threshold}} logs / {{.WindowMinutes}}m</td>
+                </tr>
+                {{else}}
+                <tr><td colspan="4" class="td-cell text-center text-slate-400 py-6">Sem regras definidas.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+<style>.fade-in { animation: fadeIn 0.3s ease-in-out; }</style>
+<script>lucide.createIcons();</script>
