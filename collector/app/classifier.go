@@ -18,7 +18,8 @@ func ClassifySource(appName, payload string) string {
 	if containsAny(text, []string{"nginx", "apache", "apache2", "httpd", "iis"}) { return "Web" }
 	if containsAny(text, []string{"named", "bind", "unbound"}) { return "DNS" }
 	if containsAny(text, []string{"dhcpd", "kea", "dnsmasq"}) { return "DHCP" }
-	if containsAny(text, []string{"cisco", "mikrotik", "routeros", "juniper", "aruba", "hp"}) { return "Network" }
+	if containsAny(text, []string{"cisco","mtkwlex", "mikrotik", "routeros", "juniper", "aruba", "hp"}) { return "Network" }
+	if containsAny(text, []string{"VMICTimeProvider", "VMSMP", "Hyper-V", "vmware", "virtualbox", "qemu"}) { return "Virtualization" }
 	
 	return "Unknown"
 }

@@ -37,7 +37,7 @@ func fetchLogsHTML(w http.ResponseWriter, r *http.Request) {
 			l.Timestamp = ts.Format("2006-01-02 15:04:05"); logs = append(logs, l)
 		}
 	}
-	RenderTemplate(w, "templates/logs_table.html", logs)
+	RenderTemplate(w, "templates/logs.html", logs)
 }
 
 func exportCSV(w http.ResponseWriter, r *http.Request) {

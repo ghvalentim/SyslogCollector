@@ -8,7 +8,7 @@ import (
 
 func InitListener() {
 	go startUDPServer()
-	go startTCPServer()
+	startTCPServer()
 }
 
 func startUDPServer() {

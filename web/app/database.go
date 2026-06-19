@@ -27,7 +27,7 @@ func InitData() {
 
 
 func initRedis() {
-	rdb := redis.NewClient(&redis.Options{Addr: os.Getenv("REDIS_URL"), DB: 0})
+	rdb = redis.NewClient(&redis.Options{Addr: os.Getenv("REDIS_URL"), DB: 0})
 	if _, err := rdb.Ping(ctx).Result(); err != nil {
 		log.Fatalf("Erro Redis: %v", err)
 	}

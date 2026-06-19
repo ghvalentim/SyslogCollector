@@ -15,7 +15,7 @@
     <meta name="application-name" content="Log Center">
 
     <!-- CSS Compilado Localmente (Tailwind via CLI) -->
-    <link rel="stylesheet" href="/output.css">
+    <link rel="stylesheet" href="assets/output.css">
 
     <!-- Bibliotecas Externas (HTMX, Lucide, Chart.js) -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
@@ -92,7 +92,8 @@
                     <option value="Windows">Windows</option>
                     <option value="Linux">Linux</option>
                     <option value="Web">Web</option>
-                    <option value="Network">Network</option>
+                    <option value="Network">Rede</option>
+                    <option value="Virtualization">Virtualização</option>
                     <option value="DNS">DNS</option>
                     <option value="DHCP">DHCP</option>
                 </select>
@@ -115,10 +116,6 @@
                 <button onclick="exportarCSV()" class="btn btn-emerald">
                     <i data-lucide="download" class="w-4 h-4"></i> 
                     <span>Exportar</span>
-                </button>
-                <button onclick="exportarPDF()" class="btn btn-red">
-                    <i data-lucide="file-text" class="w-4 h-4"></i> 
-                    <span>PDF</span>
                 </button>
                 <button onclick="toggleAutoRefresh()" id="btn-refresh" class="btn btn-blue">
                     <i data-lucide="pause-circle" id="icon-refresh" class="w-4 h-4"></i> 
@@ -219,7 +216,7 @@
     </div>
 
     <!-- Referência ao Ficheiro JS Externo -->
-    <script src="/script.js"></script>
+    <script src="assets/script.js"></script>
     
     <script>
         // Lógica visual para realçar o item ativo no menu lateral

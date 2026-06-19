@@ -15,7 +15,8 @@ func main() {
 
 	app.InitPolicies(rdb)
 	app.InitWorker(rdb)
+	app.InitListener()
 
 	log.Println("Collector ativo nas portas 514 (UDP e TCP), a aguardar logs...")
-	app.InitListener()
+	
 }

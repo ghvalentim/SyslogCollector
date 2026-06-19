@@ -1,4 +1,1 @@
 .env
-/web/node_modules
-/web/package-lock.json
-/web/package.json
