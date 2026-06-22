@@ -48,6 +48,7 @@ services:
       DB_PASS: ${DB_PASS}
       DB_NAME: ${DB_NAME}
       DB_HOST: ${DB_HOST}
+      TG_BOT_TOKEN: ${TG_BOT_TOKEN}
     depends_on:
       - redis
       - db

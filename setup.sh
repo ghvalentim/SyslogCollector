@@ -16,6 +16,10 @@ DB_HOST=db
 
 # Configurações do Redis
 REDIS_URL=redis:6379
+
+#API Telegram
+
+TG_BOT_TOKEN=coloque_aqui_o_token_do_seu_bot
 EOF
     echo "Ficheiro .env criado com sucesso."
 else

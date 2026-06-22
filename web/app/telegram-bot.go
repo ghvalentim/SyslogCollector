@@ -7,16 +7,17 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
 
 func InitTelegramBot() { 
-	go startTelegramBotListener()
+	go StartTelegramBotListener()
 }
 
-// startTelegramBotListener corre em background e escuta mensagens enviadas para o Bot
-func startTelegramBotListener() {
+// StartTelegramBotListener corre em background e escuta mensagens enviadas para o Bot
+func StartTelegramBotListener() {
 	var lastUpdateID int
 	var currentToken string
 
@@ -29,21 +30,20 @@ func startTelegramBotListener() {
 			continue
 		}
 
-		// Ler o token dinamicamente da BD
-		var token string
-		err := DB.QueryRow("SELECT tg_bot_token FROM settings WHERE id = 1").Scan(&token)
-		if err != nil || token == "" {
+		// Ler o token DIRETAMENTE das variáveis de ambiente (.env)
+		token := os.Getenv("TG_BOT_TOKEN")
+		if token == "" || token == "coloque_aqui_o_seu_token_do_botfather" {
 			time.Sleep(10 * time.Second)
 			continue
 		}
 
-		token = strings.TrimSpace(token) // Limpar espaços em branco acidentais
+		token = strings.TrimSpace(token)
 
-		// Se o administrador alterou o Token nas definições, resetamos a escuta
+		// Se o administrador alterou o Token no .env (reiniciando o container)
 		if token != currentToken {
 			currentToken = token
 			lastUpdateID = 0
-			log.Println("[TELEGRAM] Novo token detetado. Ligação ativa ao Telegram!")
+			log.Println("[TELEGRAM] Novo token detetado via .env. Ligação ativa ao Telegram!")
 		}
 
 		// Obter novas mensagens via Long Polling

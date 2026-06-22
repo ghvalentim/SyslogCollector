@@ -7,15 +7,17 @@ import (
 	"fmt"
 	"log"
 	"time"
+	"os"
 	
 )
 
 func InitAlerts() {
 	// Inicializa o motor de alertas em background
-	go startAlertEngine()
+	go StartAlertEngine()
 }
 
-func startAlertEngine() {
+// StartAlertEngine inicia a verificação periódica de regras (Corre a cada 30 segundos)
+func StartAlertEngine() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -25,11 +27,18 @@ func startAlertEngine() {
 }
 
 func evaluateAlertRules() {
-	// 1. Ir buscar as configurações do Telegram à BD
-	var tgToken, tgChat string
-	err := DB.QueryRow("SELECT tg_bot_token, tg_chat_id FROM settings WHERE id = 1").Scan(&tgToken, &tgChat)
-	if err != nil || tgToken == "" || tgChat == "" {
-		return // Não há notificações configuradas
+	// 1. Ir buscar as configurações (Token do .env e Chat ID da BD)
+	tgToken := os.Getenv("TG_BOT_TOKEN")
+	var tgChat string
+	
+	if DB == nil {
+		return
+	}
+	
+	err := DB.QueryRow("SELECT tg_chat_id FROM settings WHERE id = 1").Scan(&tgChat)
+	
+	if err != nil || tgToken == "" || tgChat == "" || tgToken == "coloque_aqui_o_seu_token_do_botfather" {
+		return // Não há notificações configuradas completamente
 	}
 
 	notifier := NewTelegramNotifier(tgToken, tgChat)
@@ -102,17 +111,17 @@ func evaluateAlertRules() {
 	}
 }
 
-
-// --- ALERTAS ---
 func ServeAlertsView(w http.ResponseWriter, r *http.Request) {
 	var rules []AlertRule
 	rows, _ := DB.Query("SELECT id, enabled, name, severity, source_type, keyword, threshold, window_minutes, last_triggered FROM alert_rules ORDER BY id DESC")
 	defer rows.Close()
+	
 	for rows.Next() {
 		var ar AlertRule
 		rows.Scan(&ar.ID, &ar.Enabled, &ar.Name, &ar.Severity, &ar.SourceType, &ar.Keyword, &ar.Threshold, &ar.WindowMinutes, &ar.LastTriggered)
 		rules = append(rules, ar)
 	}
+	
 	RenderTemplate(w, "templates/alerts.html", rules)
 }
 
@@ -123,8 +132,9 @@ func SaveAlertRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteAlertRule(w http.ResponseWriter, r *http.Request) {
-    id := r.URL.Query().Get("id")
-    DB.Exec("DELETE FROM alert_rules WHERE id = $1", id)
-    // Renderiza a vista novamente usando o HTMX
-    ServeAlertsView(w, r)
+	id := r.URL.Query().Get("id")
+	DB.Exec("DELETE FROM alert_rules WHERE id = $1", id)
+	
+	// Retorna a vista atualizada (HTMX substitui a tabela automaticamente)
+	ServeAlertsView(w, r)
 }

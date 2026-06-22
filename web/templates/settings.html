@@ -22,36 +22,46 @@
             </div>
         </div>
 
-        <!-- Bloco de Notificações (Telegram) com Instruções Interativas -->
+        <!-- Bloco de Notificações (Telegram) -->
         <div class="card p-6 space-y-5 bg-indigo-50 border-indigo-100">
             <h3 class="text-lg font-bold border-b border-indigo-200 pb-2 mb-4 text-indigo-900 flex items-center">
                 <i data-lucide="send" class="w-5 h-5 mr-2"></i> Notificações Telegram
             </h3>
             
-            <!-- Caixa de Instruções Clara -->
-            <div class="text-xs text-indigo-800 bg-white p-3 rounded-lg border border-indigo-100 leading-relaxed">
-                <p class="font-bold mb-1">Como configurar a receção de alertas:</p>
-                <ol class="list-decimal pl-4 space-y-1">
-                    <li>Crie um bot conversando com o <a href="https://t.me/botfather" target="_blank" class="font-bold text-blue-600 hover:underline">BotFather</a> no Telegram.</li>
-                    <li>Cole abaixo o <b>Bot Token</b> que ele gerar e clique em "Gravar Definições".</li>
-                    <li>Vá ao seu Telegram, abra a conversa com o seu novo bot e envie <b>/start</b>.</li>
-                    <li>O bot vai responder de imediato com o seu <b>Chat ID</b> para colar aqui!</li>
-                </ol>
+            {{if .TgBotUser}}
+            <!-- O Backend conseguiu ler o token do .env e obteve a info do Bot -->
+            <div class="text-sm text-indigo-800 bg-white p-5 rounded-xl border border-indigo-200 text-center shadow-sm">
+                <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="bot" class="w-6 h-6 text-indigo-600"></i>
+                </div>
+                <p class="font-bold text-lg mb-1">Bot Configurado e Seguro!</p>
+                <p class="text-indigo-600 mb-5">A chave API foi carregada pelo servidor a partir do <code>.env</code>. O sistema ligou-se ao bot <b>@{{.TgBotUser}}</b>.</p>
+                
+                <a href="https://t.me/{{.TgBotUser}}?start=true" target="_blank" class="btn bg-blue-500 text-white hover:bg-blue-600 w-full justify-center shadow-md font-bold py-2.5 transition-colors">
+                    <i data-lucide="external-link" class="w-4 h-4 mr-2"></i> Ativar Bot no Telegram
+                </a>
+                
+                <p class="text-xs text-slate-500 mt-3 px-2">Clique no botão acima para abrir a sua aplicação do Telegram. Envie a mensagem que aparecer. O bot responderá de imediato com o seu código de destino (Chat ID).</p>
             </div>
+            {{else}}
+            <!-- Aviso: Sem Token no .env -->
+            <div class="text-sm text-amber-800 bg-amber-50 p-4 rounded-lg border border-amber-200 text-center shadow-sm">
+                <i data-lucide="alert-triangle" class="w-8 h-8 text-amber-500 mx-auto mb-2"></i>
+                <p class="font-bold text-base mb-1">Falta Chave de API Segura</p>
+                <p class="text-amber-700 leading-relaxed">Não foi detetado um token válido de Telegram.<br>Aceda ao ficheiro <code>.env</code> do servidor, preencha <code>TG_BOT_TOKEN</code> com o código do BotFather e reinicie o Docker.</p>
+            </div>
+            {{end}}
 
             <div>
-                <label class="form-label text-indigo-900">Bot Token (API Token)</label>
-                <input type="text" name="tg_token" value="{{.TgToken}}" placeholder="Ex: 123456789:ABCdefGHIjklMNO..." class="form-input border-indigo-200 focus:border-indigo-500 bg-white shadow-sm">
-            </div>
-            <div>
-                <label class="form-label text-indigo-900">Chat ID (Destino)</label>
-                <input type="text" name="tg_chat_id" value="{{.TgChatID}}" placeholder="Ex: -10012345678" class="form-input border-indigo-200 focus:border-indigo-500 bg-white shadow-sm">
+                <label class="form-label text-indigo-900 mt-2">Código de Destino (Chat ID)</label>
+                <input type="text" name="tg_chat_id" value="{{.TgChatID}}" placeholder="Ex: -10012345678" class="form-input border-indigo-200 focus:border-indigo-500 bg-white shadow-sm font-mono text-center text-lg tracking-wider">
+                <p class="text-xs text-indigo-600 mt-1.5 text-center font-medium">Insira aqui o código numérico que o bot lhe fornecer.</p>
             </div>
         </div>
 
         <!-- Botão de Guardar Global -->
         <div class="xl:col-span-2 flex items-center space-x-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <button type="submit" class="btn btn-primary px-8"><i data-lucide="save" class="w-4 h-4 mr-2"></i> Gravar Definições</button>
+            <button type="submit" class="btn-primary px-8 py-2.5"><i data-lucide="save" class="w-4 h-4 mr-2"></i> Guardar Configuração</button>
             <div id="settings-msg" class="flex-1"></div>
         </div>
     </form>

@@ -26,7 +26,7 @@ type Settings struct {
 	Retention int 
 	User string 
 	Error string
-	TgToken string
+	TgBotUser string
 	TgChatID string
  }
 
