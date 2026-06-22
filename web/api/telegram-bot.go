@@ -1,7 +1,6 @@
-package app
+package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,10 +8,15 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"syslog-web/database"
+
 	"time"
+
+	_ "github.com/lib/pq"
+	_ "github.com/redis/go-redis/v9"
 )
 
-func InitTelegramBot() { 
+func InitTelegramBot() {
 	go StartTelegramBotListener()
 }
 
@@ -26,7 +30,7 @@ func StartTelegramBotListener() {
 	for {
 		time.Sleep(3 * time.Second) // Pausa para não sobrecarregar
 
-		if DB == nil {
+		if database.DB == nil {
 			continue
 		}
 
@@ -107,41 +111,20 @@ func handleTelegramCommand(token string, chatID int64, text string) {
 	switch text {
 	case "/start":
 		reply = fmt.Sprintf("👋 Olá! Sou o Bot do <b>Log Center</b> da CM Oliveira do Hospital.\n\nO seu Chat ID é: <code>%d</code>\n\nCopie este número e cole-o nas Definições do painel para eu começar a enviar alertas críticos.\n\nComandos úteis:\n/status - Resumo do sistema\n/alertas - Regras ativas", chatID)
-	
+
 	case "/status":
 		var countLogs int
-		DB.QueryRow("SELECT COUNT(*) FROM syslogs").Scan(&countLogs)
+		database.DB.QueryRow("SELECT COUNT(*) FROM syslogs").Scan(&countLogs)
 		reply = fmt.Sprintf("📊 <b>Status do Sistema</b>\n\n🗄️ Logs processados na BD: <b>%d</b>\n✅ O sistema de observabilidade está online.", countLogs)
-	
+
 	case "/alertas":
 		var countAlerts int
-		DB.QueryRow("SELECT COUNT(*) FROM alert_rules WHERE enabled = true").Scan(&countAlerts)
+		database.DB.QueryRow("SELECT COUNT(*) FROM alert_rules WHERE enabled = true").Scan(&countAlerts)
 		reply = fmt.Sprintf("🔔 Estão atualmente <b>%d regras de deteção ativas</b> no Motor de Alertas.", countAlerts)
-	
+
 	default:
 		reply = "Comando não reconhecido. Tente /start, /status ou /alertas."
 	}
 
-	sendTelegramReply(token, chatID, reply)
-}
-
-// Envia a resposta de volta para o utilizador no Telegram
-func sendTelegramReply(token string, chatID int64, text string) {
-	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
-	payload := map[string]interface{}{
-		"chat_id":    chatID,
-		"text":       text,
-		"parse_mode": "HTML",
-	}
-	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		log.Printf("[TELEGRAM] Falha ao enviar resposta: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-	
-	if resp.StatusCode != 200 {
-		log.Printf("[TELEGRAM] Falha ao enviar resposta. Status Code: %d", resp.StatusCode)
-	}
+	sendTelegramMessage(token, chatID, reply)
 }

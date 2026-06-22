@@ -1,4 +1,4 @@
-package app
+package models
 
 import "database/sql"
 
@@ -57,3 +57,11 @@ type AlertRule struct {
 	WindowMinutes int
 	LastTriggered  sql.NullTime
 }
+
+type AlertNotification struct {
+	RuleName      string
+	Occurrences   int
+	WindowMinutes int
+	SampleLog     string
+}
+

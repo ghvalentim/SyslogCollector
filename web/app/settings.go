@@ -6,12 +6,14 @@ import (
 	_ "github.com/lib/pq"
 	"os"
 	"encoding/json"
+	"syslog-web/database"
+	"syslog-web/models"
 )
 
 // --- DEFINIÇÕES E FERRAMENTAS ---
 func ServeSettingsView(w http.ResponseWriter, r *http.Request) {
-	var s Settings
-	DB.QueryRow("SELECT retention_days, admin_user, tg_chat_id FROM settings WHERE id = 1").Scan(&s.Retention, &s.User, &s.TgChatID)
+	var s models.Settings
+	database.DB.QueryRow("SELECT retention_days, admin_user, tg_chat_id FROM settings WHERE id = 1").Scan(&s.Retention, &s.User, &s.TgChatID)
 	tgToken := os.Getenv("TG_BOT_TOKEN");
 
 	if tgToken !="" && tgToken != "coloque_aqui_o_token_do_seu_bot" {
@@ -40,9 +42,9 @@ func SaveSettings(w http.ResponseWriter, r *http.Request) {
 	tgChat := r.FormValue("tg_chat_id")
 
 	if pass != "" {
-		DB.Exec("UPDATE settings SET retention_days = $1, admin_user = $2, admin_pass = $3, tg_chat_id = $4 WHERE id = 1", retention, user, pass, tgChat)
+		database.DB.Exec("UPDATE settings SET retention_days = $1, admin_user = $2, admin_pass = $3, tg_chat_id = $4 WHERE id = 1", retention, user, pass, tgChat)
 	} else {
-		DB.Exec("UPDATE settings SET retention_days = $1, admin_user = $2, tg_chat_id = $3 WHERE id = 1", retention, user, tgChat)
+		database.DB.Exec("UPDATE settings SET retention_days = $1, admin_user = $2, tg_chat_id = $3 WHERE id = 1", retention, user, tgChat)
 	}
 
 	w.Write([]byte(`<div class="p-3 bg-emerald-50 text-emerald-700 rounded-lg text-sm flex items-center font-medium"><i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Definições atualizadas com sucesso!</div><script>lucide.createIcons();</script>`))

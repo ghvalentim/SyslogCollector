@@ -5,6 +5,8 @@ import (
 	"html/template"
 	_ "github.com/lib/pq"
 	"log"
+	"syslog-web/database"
+	"syslog-web/models"
 )
 
 
@@ -30,11 +32,11 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 
 func serveLogin(w http.ResponseWriter, r *http.Request) {
-	var s Settings
+	var s models.Settings
 	if r.Method == "POST" {
 		user, pass := r.FormValue("username"), r.FormValue("password")
 		var DBUser, DBPass string
-		DB.QueryRow("SELECT admin_user, admin_pass FROM settings WHERE id = 1").Scan(&DBUser, &DBPass)
+		database.DB.QueryRow("SELECT admin_user, admin_pass FROM settings WHERE id = 1").Scan(&DBUser, &DBPass)
 
 		if user == DBUser && pass == DBPass {
 			http.SetCookie(w, &http.Cookie{Name: "admin_session", Value: "valid", Path: "/", HttpOnly: true, MaxAge: 86400})

@@ -1,4 +1,4 @@
-package app
+package database
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 
 var (
 	DB  *sql.DB
-	rdb *redis.Client
-	ctx = context.Background()
+	Rdb *redis.Client
+	Ctx = context.Background()
 )
 
 func InitData() {
