@@ -10,7 +10,12 @@ import (
 	
 )
 
-func StartAlertEngine() {
+func InitAlerts() {
+	// Inicializa o motor de alertas em background
+	go startAlertEngine()
+}
+
+func startAlertEngine() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 

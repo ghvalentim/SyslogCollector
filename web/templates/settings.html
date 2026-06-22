@@ -22,21 +22,30 @@
             </div>
         </div>
 
-        <!-- Bloco de Notificações (Telegram) -->
+        <!-- Bloco de Notificações (Telegram) com Instruções Interativas -->
         <div class="card p-6 space-y-5 bg-indigo-50 border-indigo-100">
             <h3 class="text-lg font-bold border-b border-indigo-200 pb-2 mb-4 text-indigo-900 flex items-center">
                 <i data-lucide="send" class="w-5 h-5 mr-2"></i> Notificações Telegram
             </h3>
-            <p class="text-xs text-indigo-700 leading-relaxed">
-                Configure um bot através do <a href="https://t.me/botfather" target="_blank" class="font-bold underline">BotFather</a> no Telegram para receber os alertas críticos da infraestrutura da Câmara.
-            </p>
+            
+            <!-- Caixa de Instruções Clara -->
+            <div class="text-xs text-indigo-800 bg-white p-3 rounded-lg border border-indigo-100 leading-relaxed">
+                <p class="font-bold mb-1">Como configurar a receção de alertas:</p>
+                <ol class="list-decimal pl-4 space-y-1">
+                    <li>Crie um bot conversando com o <a href="https://t.me/botfather" target="_blank" class="font-bold text-blue-600 hover:underline">BotFather</a> no Telegram.</li>
+                    <li>Cole abaixo o <b>Bot Token</b> que ele gerar e clique em "Gravar Definições".</li>
+                    <li>Vá ao seu Telegram, abra a conversa com o seu novo bot e envie <b>/start</b>.</li>
+                    <li>O bot vai responder de imediato com o seu <b>Chat ID</b> para colar aqui!</li>
+                </ol>
+            </div>
+
             <div>
                 <label class="form-label text-indigo-900">Bot Token (API Token)</label>
-                <input type="text" name="tg_token" value="{{.TgToken}}" placeholder="Ex: 123456789:ABCdefGHIjklMNO..." class="form-input border-indigo-200 focus:border-indigo-500 bg-white">
+                <input type="text" name="tg_token" value="{{.TgToken}}" placeholder="Ex: 123456789:ABCdefGHIjklMNO..." class="form-input border-indigo-200 focus:border-indigo-500 bg-white shadow-sm">
             </div>
             <div>
                 <label class="form-label text-indigo-900">Chat ID (Destino)</label>
-                <input type="text" name="tg_chat_id" value="{{.TgChatID}}" placeholder="Ex: -10012345678" class="form-input border-indigo-200 focus:border-indigo-500 bg-white">
+                <input type="text" name="tg_chat_id" value="{{.TgChatID}}" placeholder="Ex: -10012345678" class="form-input border-indigo-200 focus:border-indigo-500 bg-white shadow-sm">
             </div>
         </div>
 
