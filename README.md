@@ -13,63 +13,75 @@
 ![RFC5424](https://img.shields.io/badge/Syslog-RFC5424-success)
 ![Redis Pub/Sub](https://img.shields.io/badge/Redis-Pub%2FSub-orange)
 ![Policy Engine](https://img.shields.io/badge/Policy%20Engine-Dynamic-blueviolet)
+![Worker Pool](https://img.shields.io/badge/Worker%20Pool-Enabled-success)
+![Classification](https://img.shields.io/badge/Event%20Classification-Enabled-success)
+![Alerts](https://img.shields.io/badge/Alert%20Management-Enabled-orange)
 
 ![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen)
-![Version](https://img.shields.io/badge/Version-v0.7.0-blue)
+![Version](https://img.shields.io/badge/Version-v0.8.0--alpha-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
-
-Sistema moderno de recolha, processamento, filtragem e observabilidade de eventos Syslog.
-
-Desenvolvido em Go, PostgreSQL, Redis, HTMX e Tailwind CSS.
 
 ---
 
 ## 📌 Visão Geral
 
-O SyslogCollector é uma plataforma de observabilidade leve destinada a pequenas e médias infraestruturas.
+O SyslogCollector é uma plataforma de observabilidade leve desenvolvida para recolha, processamento, classificação e visualização de eventos Syslog em pequenas e médias infraestruturas.
 
-O sistema permite:
+### Funcionalidades
 
-- Receber logs Syslog via UDP e TCP
-- Interpretar mensagens RFC3164 e RFC5424
-- Aplicar políticas de filtragem em tempo real
-- Armazenar eventos em PostgreSQL
-- Visualizar eventos através de dashboard web responsivo
-- Exportar registos para CSV
-- Gerir retenção de dados
-- Obter estatísticas operacionais
-- Administrar o sistema através de interface web
+- Receção Syslog UDP e TCP
+- Suporte RFC3164 e RFC5424
+- Dashboard Web em tempo real
+- Classificação automática de eventos
+- Facilities humanizadas
+- Motor de políticas dinâmico
+- Redis Pub/Sub
+- Gestão de alertas
+- Estatísticas operacionais
+- Exportação CSV
+- Autenticação integrada
+- Docker Compose Ready
 
 ---
 
 ## 🏗 Arquitetura
 
 ```text
-Dispositivos
-(Firewalls, Switches, Linux, Windows, APs)
+Clientes Syslog
+(Firewalls, Linux, Windows, Switches, APs)
 
             │
             ▼
 
-      Syslog Collector
+     Syslog Collector
       UDP/TCP :514
 
             │
             ▼
 
-     Motor de Políticas
-       (em memória)
+      RFC3164 Parser
+      RFC5424 Parser
 
             │
             ▼
 
-          Redis
-      Queue + Pub/Sub
+    Event Classifier
+    Facility Mapper
 
             │
             ▼
 
-        Web Worker
+      Policy Engine
+
+            │
+            ▼
+
+       Redis Queue
+
+            │
+            ▼
+
+      Worker Pool
 
             │
             ▼
@@ -79,92 +91,108 @@ Dispositivos
             │
             ▼
 
-     Dashboard HTMX
-```
-
----
+      Dashboard Web
+````
 
 ## 🚀 Tecnologias
 
 ### Backend
 
-- Go
-- PostgreSQL
-- Redis
+* Go
+* PostgreSQL
+* Redis
 
 ### Frontend
 
-- HTMX
-- Tailwind CSS
-- Chart.js
-- Lucide Icons
+* HTMX
+* Tailwind CSS
+* Chart.js
+* Lucide Icons
 
 ### Infraestrutura
 
-- Docker
-- Docker Compose
-- Nginx
+* Docker
+* Docker Compose
+* Nginx
 
 ---
-
-# Funcionalidades
 
 ## 📥 Recolha de Logs
 
-Suporte para:
+Suporta:
 
-- Syslog UDP
-- Syslog TCP
-- RFC3164
-- RFC5424
+* Syslog UDP
+* Syslog TCP
+* RFC3164
+* RFC5424
 
-Campos normalizados:
+Campos processados:
 
-- Timestamp
-- IP Origem
-- Protocolo
-- Hostname
-- Aplicação
-- Severidade
-- Facility
-- Payload
-
----
-
-## 📊 Dashboard em Tempo Real
-
-Visualização contínua dos eventos.
-
-Recursos:
-
-- Pesquisa textual
-- Filtro por severidade
-- Atualização automática
-- Pausa de atualização
-- Drawer de detalhes
-- Exportação CSV
+* Timestamp
+* Source IP
+* Hostname
+* Application
+* Facility
+* Facility Name
+* Severity
+* Payload
+* Source Type
 
 ---
 
-## 📈 Estatísticas
+## 🧠 Classificação Automática
 
-Painel analítico com:
+O sistema classifica automaticamente os eventos recebidos.
 
-- Logs recebidos
-- Logs armazenados
-- Logs filtrados
-- Distribuição por severidade
-- Hosts mais ativos
+Categorias atualmente suportadas:
+
+* Firewall
+* Windows
+* Linux
+* DNS
+* DHCP
+* Network
+* Web
+* Security
+* Database
+* Unknown
+
+A classificação considera:
+
+* Application Name
+* Hostname
+* Facility
+* Conteúdo da mensagem
 
 ---
 
-## 🛡️ Motor de Políticas Dinâmicas
+## 🏷 Facilities Humanizadas
 
-As políticas são aplicadas antes da persistência.
+Conversão automática das facilities Syslog.
 
-### Filtros disponíveis
+| Código | Nome   |
+| ------ | ------ |
+| 0      | Kernel |
+| 1      | User   |
+| 2      | Mail   |
+| 3      | Daemon |
+| 4      | Auth   |
+| 16     | Local0 |
+| 17     | Local1 |
+| 18     | Local2 |
+| 19     | Local3 |
+| 20     | Local4 |
+| 21     | Local5 |
+| 22     | Local6 |
+| 23     | Local7 |
 
-#### Severidade mínima
+---
+
+## 🛡 Motor de Políticas
+
+Permite filtragem dinâmica sem reiniciar o collector.
+
+### Severidade mínima
 
 Exemplo:
 
@@ -180,19 +208,7 @@ Info
 Debug
 ```
 
----
-
-#### Aplicações ignoradas
-
-```text
-nginx
-dnsmasq
-systemd
-```
-
----
-
-#### Hosts ignorados
+### Hosts ignorados
 
 ```text
 printer01
@@ -200,21 +216,27 @@ switch-lab
 test-server
 ```
 
----
-
-#### Palavras-chave ignoradas
+### Aplicações ignoradas
 
 ```text
-healthcheck
+nginx
+systemd
+dnsmasq
+```
+
+### Palavras-chave ignoradas
+
+```text
 heartbeat
-GET /favicon.ico
+healthcheck
+favicon.ico
 ```
 
 ---
 
-### Atualização em tempo real
+## 🔄 Atualização Dinâmica
 
-Fluxo:
+As alterações são sincronizadas via Redis Pub/Sub.
 
 ```text
 Dashboard
@@ -226,34 +248,81 @@ PostgreSQL
     ▼
 
 Redis
-SET + Publish
+ SET + Publish
     │
     ▼
 
 Collector
-Reload automático
+Reload Automático
 ```
 
-Não é necessário reiniciar containers.
+Sem necessidade de reiniciar containers.
+
+---
+
+## 🚨 Gestão de Alertas
+
+Já implementado:
+
+* CRUD de alertas
+* Persistência PostgreSQL
+* Interface administrativa
+* Configuração dinâmica
+
+Preparado para:
+
+* Email
+* Telegram
+* Discord
+* Webhooks
+
+Exemplos:
+
+* Mais de 20 erros em 5 minutos
+* Mais de 50 eventos Firewall em 10 minutos
+* Eventos contendo palavras-chave específicas
+
+---
+
+## 📊 Dashboard
+
+Funcionalidades:
+
+* Atualização automática
+* Pesquisa textual
+* Filtro por severidade
+* Drawer de detalhes
+* Exportação CSV
+* Navegação HTMX
+* Interface responsiva
+
+---
+
+## 📈 Estatísticas
+
+Disponíveis:
+
+* Logs recebidos
+* Logs armazenados
+* Logs filtrados
+* Hosts mais ativos
+* Aplicações mais ativas
+* Distribuição por severidade
+* Distribuição por origem
 
 ---
 
 ## 🔐 Autenticação
 
-Autenticação integrada.
+Autenticação baseada em sessão.
 
-Configurações armazenadas:
-
-- Utilizador
-- Palavra-passe
-
-Sessões protegidas por cookie.
+Configuração via painel administrativo.
 
 ---
 
 ## 🗄 Retenção Automática
 
-Configuração de retenção em dias.
+Suporte a retenção configurável.
 
 Exemplo:
 
@@ -261,7 +330,7 @@ Exemplo:
 30 dias
 ```
 
-Processo automático executado periodicamente.
+Os registos antigos são removidos automaticamente.
 
 ---
 
@@ -271,12 +340,11 @@ Processo automático executado periodicamente.
 
 ```bash
 git clone https://github.com/ghvalentim/SyslogCollector.git
+
 cd SyslogCollector
 ```
 
----
-
-### Configurar ambiente
+### Configurar
 
 ```bash
 cp .env.example .env
@@ -293,44 +361,67 @@ DB_PASS=syslog
 REDIS_URL=redis:6379
 ```
 
----
-
 ### Iniciar
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 ---
 
 ## 🌐 Acesso
 
-Dashboard:
-
 ```text
-http://localhost:8080
+http://localhost
 ```
 
 ---
 
-## 📁 Estrutura
+## 📁 Estrutura do Projeto
 
 ```text
 SyslogCollector
 │
-├── collector/
-│   └── main.go
-│
-├── web/
+├── collector
 │   ├── main.go
-│   ├── index.html
-│   ├── script.js
-│   ├── style.css
-│   └── output.css
+│   └── app
+│       ├── classifier.go
+│       ├── facility.go
+│       ├── listener.go
+│       ├── models.go
+│       ├── parser.go
+│       ├── policy.go
+│       ├── redis.go
+│       └── workers.go
 │
-├── nginx/
-│   └── default.conf
+├── web
+│   ├── main.go
+│   ├── app
+│   │   ├── alerts.go
+│   │   ├── auth.go
+│   │   ├── database.go
+│   │   ├── handlers.go
+│   │   ├── models.go
+│   │   ├── policies.go
+│   │   ├── routes.go
+│   │   ├── services.go
+│   │   ├── settings.go
+│   │   └── stats.go
+│   │
+│   ├── assets
+│   │   ├── output.css
+│   │   └── script.js
+│   │
+│   └── templates
+│       ├── alerts.html
+│       ├── login.html
+│       ├── logs.html
+│       ├── policies.html
+│       ├── settings.html
+│       ├── stats.html
+│       └── tools.html
 │
+├── nginx
 ├── compose.yml
 ├── setup.sh
 └── README.md
@@ -338,74 +429,98 @@ SyslogCollector
 
 ---
 
-# Roadmap
+## 🗺 Roadmap
 
-## Sprint 1
+### Sprint 1 ✅
 
-- Recolha UDP
-- Recolha TCP
-- PostgreSQL
-- Redis Queue
+* Receção UDP/TCP
+* PostgreSQL
+* Redis Queue
 
-## Sprint 2
+### Sprint 2 ✅
 
-- Dashboard HTMX
-- Pesquisa
-- Exportação CSV
+* Dashboard HTMX
+* Pesquisa
+* Exportação CSV
 
-## Sprint 3
+### Sprint 3 ✅
 
-- Autenticação
-- Definições
+* Autenticação
+* Configurações
 
-## Sprint 4
+### Sprint 4 ✅
 
-- Estatísticas
-- Gráficos
+* Estatísticas
+* Gráficos
 
-## Sprint 5
+### Sprint 5 ✅
 
-- Drawer de detalhes
-- Interface profissional
+* Drawer de detalhes
+* Melhorias UI
 
-## Sprint 6
+### Sprint 6 ✅
 
-- Tailwind compilado localmente
-- Otimizações de UI
+* Tailwind local
+* Refatoração visual
 
-## Sprint 7 ✅
+### Sprint 7 ✅
 
-- Motor de Políticas
-- Redis Pub/Sub
-- Filtros dinâmicos
-- Estatísticas de filtragem
+* Motor de Políticas
+* Redis Pub/Sub
+* Filtragem dinâmica
 
-## Sprint 8 (Planeada)
+### Sprint 8 🚧
 
-- Classificação automática de origem
-- Regras por Facility
-- Tags automáticas
-- Alertas
+* ✅ Classificação automática
+* ✅ Facilities humanizadas
+* ✅ Worker Pool
+* ✅ CRUD de alertas
+* ✅ Estatísticas por origem
+* 🚧 Alert Engine
+* 🚧 Notificações
 
-## Sprint 9 (Planeada)
+### Sprint 9
 
-- Multiutilizador
-- Auditoria
-- Perfis de acesso
+* Correlação de eventos
+* Email
+* Telegram
+* Discord
+* Webhooks
 
-## Sprint 10 (Planeada)
+### Sprint 10
 
-- Kubernetes
-- Alta disponibilidade
-- Clustering
+* Multiutilizador
+* Auditoria
+* Perfis de acesso
+
+### Sprint 11
+
+* Kubernetes
+* Alta disponibilidade
+* Clustering
 
 ---
 
-# Licença
+## 📄 Licença
 
-Projeto desenvolvido para fins académicos, laboratoriais e de aprendizagem em observabilidade, redes e desenvolvimento de software.
+MIT License.
 
 ---
 
-**SyslogCollector**
-Observabilidade simples, rápida e sem complicações.
+## 👨‍💻 Autor
+
+Gabriel Valentim
+
+Projeto de estudo focado em:
+
+* Observabilidade
+* Redes
+* Syslog
+* Golang
+* HTMX
+* Arquitetura de Sistemas
+
+---
+
+**SyslogCollector v0.8.0-alpha**
+*Observabilidade simples, rápida e sem complicações.*
