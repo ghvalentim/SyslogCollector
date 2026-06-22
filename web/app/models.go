@@ -1,5 +1,7 @@
 package app
 
+import "database/sql"
+
 type LogEntry struct {
 	ID           int    `json:"id"`
 	Timestamp    string `json:"timestamp"`
@@ -18,7 +20,15 @@ type SeverityStat struct { Severity string `json:"severity"`; Count int `json:"c
 type HostStat struct { Hostname string `json:"hostname"`; Count int `json:"count"` }
 type SourceStat struct { Source string `json:"source"`; Count int `json:"count"` }
 type StatsResponse struct { Severities []SeverityStat `json:"severities"`; Hosts []HostStat `json:"hosts"`; Sources []SourceStat `json:"sources"` }
-type Settings struct { Retention int; User string; Error string }
+
+
+type Settings struct { 
+	Retention int 
+	User string 
+	Error string
+	TgToken string
+	TgChatID string
+ }
 
 type LogPolicy struct {
 	Enabled         bool     `json:"enabled"`
@@ -45,4 +55,5 @@ type AlertRule struct {
 	Keyword       string
 	Threshold     int
 	WindowMinutes int
+	LastTriggered  sql.NullTime
 }

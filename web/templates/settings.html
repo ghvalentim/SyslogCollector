@@ -2,13 +2,16 @@
     <div class="flex justify-between items-center mb-2">
         <h2 class="text-2xl font-bold text-slate-800">Definições do Sistema</h2>
     </div>
-    <div class="card p-6 max-w-2xl">
-        <form hx-post="/settings/save" hx-target="#settings-msg" class="space-y-5">
+    
+    <form hx-post="/settings/save" hx-target="#settings-msg" class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+        
+        <!-- Bloco de Autenticação e Retenção -->
+        <div class="card p-6 space-y-5">
+            <h3 class="text-lg font-bold border-b border-slate-100 pb-2 mb-4 text-slate-700">Gerais e Acesso</h3>
             <div>
                 <label class="form-label"><i data-lucide="clock" class="w-4 h-4 inline mr-1 text-slate-400"></i> Retenção de Logs (Dias)</label>
                 <input type="number" name="retention" value="{{.Retention}}" min="1" class="form-input">
             </div>
-            <hr class="border-slate-100 my-4">
             <div>
                 <label class="form-label"><i data-lucide="user" class="w-4 h-4 inline mr-1 text-slate-400"></i> Administrador</label>
                 <input type="text" name="username" value="{{.User}}" required class="form-input">
@@ -17,12 +20,32 @@
                 <label class="form-label"><i data-lucide="key" class="w-4 h-4 inline mr-1 text-slate-400"></i> Nova Palavra-passe</label>
                 <input type="password" name="password" placeholder="Deixe vazio para manter a atual" class="form-input">
             </div>
-            <div class="pt-3">
-                <button type="submit" class="btn-primary"><i data-lucide="save" class="w-4 h-4 mr-2"></i> Guardar</button>
+        </div>
+
+        <!-- Bloco de Notificações (Telegram) -->
+        <div class="card p-6 space-y-5 bg-indigo-50 border-indigo-100">
+            <h3 class="text-lg font-bold border-b border-indigo-200 pb-2 mb-4 text-indigo-900 flex items-center">
+                <i data-lucide="send" class="w-5 h-5 mr-2"></i> Notificações Telegram
+            </h3>
+            <p class="text-xs text-indigo-700 leading-relaxed">
+                Configure um bot através do <a href="https://t.me/botfather" target="_blank" class="font-bold underline">BotFather</a> no Telegram para receber os alertas críticos da infraestrutura da Câmara.
+            </p>
+            <div>
+                <label class="form-label text-indigo-900">Bot Token (API Token)</label>
+                <input type="text" name="tg_token" value="{{.TgToken}}" placeholder="Ex: 123456789:ABCdefGHIjklMNO..." class="form-input border-indigo-200 focus:border-indigo-500 bg-white">
             </div>
-            <div id="settings-msg" class="mt-4"></div>
-        </form>
-    </div>
+            <div>
+                <label class="form-label text-indigo-900">Chat ID (Destino)</label>
+                <input type="text" name="tg_chat_id" value="{{.TgChatID}}" placeholder="Ex: -10012345678" class="form-input border-indigo-200 focus:border-indigo-500 bg-white">
+            </div>
+        </div>
+
+        <!-- Botão de Guardar Global -->
+        <div class="xl:col-span-2 flex items-center space-x-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <button type="submit" class="btn btn-primary px-8"><i data-lucide="save" class="w-4 h-4 mr-2"></i> Gravar Definições</button>
+            <div id="settings-msg" class="flex-1"></div>
+        </div>
+    </form>
 </div>
 <style>.fade-in { animation: fadeIn 0.3s ease-in-out; }</style>
 <script>lucide.createIcons();</script>

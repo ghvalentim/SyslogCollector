@@ -26,7 +26,7 @@ func buildLogsQuery(r *http.Request, limit int) (string, []interface{}) {
 
 func fetchLogsHTML(w http.ResponseWriter, r *http.Request) {
 	query, args := buildLogsQuery(r, 50)
-	rows, err := db.Query(query, args...)
+	rows, err := DB.Query(query, args...)
 	if err != nil { http.Error(w, "Erro", http.StatusInternalServerError); return }
 	defer rows.Close()
 
@@ -46,6 +46,6 @@ func exportCSV(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte{0xEF, 0xBB, 0xBF})
 	writer := csv.NewWriter(w); defer writer.Flush()
 	writer.Write([]string{"ID", "Data", "Origem IP", "Host", "App", "Source Type", "Facility", "Gravidade", "Msg"})
-	query, args := buildLogsQuery(r, 2000); rows, _ := db.Query(query, args...); defer rows.Close()
+	query, args := buildLogsQuery(r, 2000); rows, _ := DB.Query(query, args...); defer rows.Close()
 	for rows.Next() { var l LogEntry; var ts time.Time; if rows.Scan(&l.ID, &ts, &l.SourceIP, &l.Protocol, &l.Hostname, &l.AppName, &l.Severity, &l.Facility, &l.FacilityName, &l.SourceType, &l.Payload) == nil { writer.Write([]string{fmt.Sprint(l.ID), ts.Format("2006-01-02 15:04:05"), l.SourceIP, l.Hostname, l.AppName, l.SourceType, l.FacilityName, l.Severity, l.Payload}) } }
 }

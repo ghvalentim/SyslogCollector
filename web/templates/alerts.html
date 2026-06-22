@@ -1,14 +1,19 @@
 <div class="space-y-6 fade-in">
     <div class="flex justify-between items-center mb-2">
         <h2 class="text-2xl font-bold text-slate-800">Motor de Alertas</h2>
-        <p class="text-sm text-slate-500">Fundação de monitorização para notificação proativa.</p>
+        <p class="text-sm text-slate-500">Avaliação periódica para notificação proativa via Telegram.</p>
     </div>
+    
+    <!-- Formulário Nova Regra -->
     <div class="card p-6">
-        <h3 class="text-lg font-bold mb-4">Nova Regra de Deteção</h3>
-        <form hx-post="/alerts/save" hx-target="#alert-msg" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <h3 class="text-lg font-bold mb-4 flex items-center text-slate-700">
+            <i data-lucide="plus-circle" class="w-5 h-5 mr-2 text-blue-500"></i> Criar Nova Regra de Deteção
+        </h3>
+        <!-- Usamos hx-target="#main-content" para que, ao gravar, a página recarregue toda a tabela atualizada -->
+        <form hx-post="/alerts/save" hx-target="#main-content" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
             <div class="md:col-span-2">
                 <label class="form-label">Nome da Regra</label>
-                <input type="text" name="name" placeholder="ex: Falhas críticas na Firewall" required class="form-input">
+                <input type="text" name="name" placeholder="ex: Falhas VPN Firewall" required class="form-input">
             </div>
             <div>
                 <label class="form-label">Origem</label>
@@ -17,14 +22,8 @@
                     <option value="Firewall">Firewall</option>
                     <option value="Windows">Windows</option>
                     <option value="Linux">Linux</option>
-                    <option value="Network">Rede</option>
-                    <option value="Virtualization">Virtualização</option>
                     <option value="Web">Web</option>
-                    <option value="DNS">DNS</option>
-                    <option value="DHCP">DHCP</option>
-                </select>
-                </select>
-                </select>
+                    <option value="Network">Network</option>
                 </select>
             </div>
             <div>
@@ -33,34 +32,74 @@
             </div>
             <div>
                 <label class="form-label">Ocorrências (X)</label>
-                <input type="number" name="threshold" value="5" class="form-input" required>
+                <input type="number" name="threshold" value="5" min="1" class="form-input" required>
             </div>
             <div>
                 <label class="form-label">Minutos (Y)</label>
-                <input type="number" name="window" value="5" class="form-input" required>
+                <input type="number" name="window" value="5" min="1" class="form-input" required>
             </div>
-            <div class="md:col-span-2">
-                <button type="submit" class="btn-primary w-full"><i data-lucide="plus" class="w-4 h-4 mr-2"></i> Criar Regra ("X em Y minutos")</button>
+            <div class="md:col-span-6 flex justify-end mt-2">
+                <button type="submit" class="btn btn-primary"><i data-lucide="check" class="w-4 h-4 mr-2"></i> Adicionar Regra</button>
             </div>
         </form>
-        <div id="alert-msg" class="mt-4"></div>
     </div>
     
+    <!-- Tabela de Regras Ativas -->
     <div class="card overflow-hidden">
-        <table class="w-full text-left text-sm">
+        <table class="min-w-full text-left text-sm">
             <thead class="table-head">
-                <tr><th class="th-cell">Estado</th><th class="th-cell">Regra</th><th class="th-cell">Condição</th><th class="th-cell">Threshold</th></tr>
+                <tr>
+                    <th class="th-cell w-20">Estado</th>
+                    <th class="th-cell">Nome da Regra</th>
+                    <th class="th-cell">Condições de Disparo</th>
+                    <th class="th-cell">Limites</th>
+                    <th class="th-cell w-48">Último Disparo</th>
+                    <th class="th-cell w-16 text-center">Ações</th>
+                </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 {{range .}}
-                <tr>
-                    <td class="td-cell"><span class="badge {{if .Enabled}}badge-info{{else}}badge-debug{{end}}">{{if .Enabled}}Ativa{{else}}Inativa{{end}}</span></td>
-                    <td class="td-cell font-bold">{{.Name}}</td>
-                    <td class="td-cell text-slate-500">Origem: {{if .SourceType}}{{.SourceType}}{{else}}Qualquer{{end}} | Chave: {{if .Keyword}}{{.Keyword}}{{else}}N/A{{end}}</td>
-                    <td class="td-cell font-mono">{{.Threshold}} logs / {{.WindowMinutes}}m</td>
+                <tr class="tr-row">
+                    <td class="td-cell">
+                        <span class="badge {{if .Enabled}}badge-info{{else}}badge-debug{{end}}">
+                            {{if .Enabled}}Ativa{{else}}Inativa{{end}}
+                        </span>
+                    </td>
+                    <td class="td-cell font-bold text-slate-800">{{.Name}}</td>
+                    <td class="td-cell text-slate-500 text-xs space-y-1">
+                        <div><span class="font-semibold text-slate-700">Origem:</span> {{if .SourceType}}<span class="px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200">{{.SourceType}}</span>{{else}}Qualquer{{end}}</div>
+                        <div><span class="font-semibold text-slate-700">Chave:</span> {{if .Keyword}}<span class="font-mono text-red-500">{{.Keyword}}</span>{{else}}N/A{{end}}</div>
+                    </td>
+                    <td class="td-cell">
+                        <div class="font-mono text-xs font-semibold bg-slate-50 p-1.5 rounded border border-slate-200 inline-block text-center">
+                            &ge; {{.Threshold}} ocorrências<br>
+                            <span class="text-slate-400 font-sans">em {{.WindowMinutes}} mins</span>
+                        </div>
+                    </td>
+                    <td class="td-cell text-xs">
+                        {{if .LastTriggered.Valid}}
+                            <span class="text-orange-600 font-bold flex items-center bg-orange-50 px-2 py-1 rounded border border-orange-100 w-fit">
+                                <i data-lucide="alert-circle" class="w-3.5 h-3.5 mr-1.5"></i> {{.LastTriggered.Time.Format "02/01/2006 15:04"}}
+                            </span>
+                        {{else}}
+                            <span class="text-slate-400 flex items-center"><i data-lucide="clock" class="w-3.5 h-3.5 mr-1.5"></i> Nunca disparou</span>
+                        {{end}}
+                    </td>
+                    <td class="td-cell text-center">
+                        <!-- Botão de Apagar Regra com HTMX (Envia pedido DELETE e atualiza o ecrã) -->
+                        <button hx-delete="/alerts/delete?id={{.ID}}" hx-target="#main-content" class="text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors p-2 rounded-lg" title="Apagar Regra">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
                 </tr>
                 {{else}}
-                <tr><td colspan="4" class="td-cell text-center text-slate-400 py-6">Sem regras definidas.</td></tr>
+                <tr>
+                    <td colspan="6" class="td-cell text-center text-slate-400 py-10">
+                        <i data-lucide="bell-off" class="w-8 h-8 mx-auto mb-3 opacity-50"></i>
+                        <p>Sem regras definidas.</p>
+                        <p class="text-xs">O sistema não emitirá notificações proativas.</p>
+                    </td>
+                </tr>
                 {{end}}
             </tbody>
         </table>

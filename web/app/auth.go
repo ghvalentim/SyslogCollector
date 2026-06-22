@@ -33,10 +33,10 @@ func serveLogin(w http.ResponseWriter, r *http.Request) {
 	var s Settings
 	if r.Method == "POST" {
 		user, pass := r.FormValue("username"), r.FormValue("password")
-		var dbUser, dbPass string
-		db.QueryRow("SELECT admin_user, admin_pass FROM settings WHERE id = 1").Scan(&dbUser, &dbPass)
+		var DBUser, DBPass string
+		DB.QueryRow("SELECT admin_user, admin_pass FROM settings WHERE id = 1").Scan(&DBUser, &DBPass)
 
-		if user == dbUser && pass == dbPass {
+		if user == DBUser && pass == DBPass {
 			http.SetCookie(w, &http.Cookie{Name: "admin_session", Value: "valid", Path: "/", HttpOnly: true, MaxAge: 86400})
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
