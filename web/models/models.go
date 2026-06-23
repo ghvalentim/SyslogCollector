@@ -2,6 +2,8 @@ package models
 
 import "database/sql"
 
+
+
 type LogEntry struct {
 	ID           int    `json:"id"`
 	Timestamp    string `json:"timestamp"`
@@ -63,5 +65,11 @@ type AlertNotification struct {
 	Occurrences   int
 	WindowMinutes int
 	SampleLog     string
+}
+
+type API struct {
+	Token string
+	EndpointURL string
+	Requests func(method, url string, body []byte) (respBody []byte, err error)
 }
 

@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 	"syslog-web/database"
-
 	"time"
 
 	_ "github.com/lib/pq"
@@ -20,7 +19,8 @@ func InitTelegramBot() {
 	go StartTelegramBotListener()
 }
 
-// StartTelegramBotListener corre em background e escuta mensagens enviadas para o Bot
+const DefaultAPIEndpointURL = "https://api.telegram.org/bot"
+
 func StartTelegramBotListener() {
 	var lastUpdateID int
 	var currentToken string
@@ -86,6 +86,8 @@ func StartTelegramBotListener() {
 			log.Printf("[TELEGRAM] Erro da API do Telegram: %s", tgResp.Description)
 			time.Sleep(10 * time.Second)
 			continue
+		} else {
+			log.Printf("[TELEGRAM] Conexão ativa. A escutar mensagens... (Último UpdateID: %d)", lastUpdateID)
 		}
 
 		// Processar cada mensagem nova recebida
@@ -93,8 +95,8 @@ func StartTelegramBotListener() {
 			lastUpdateID = update.UpdateID
 			if update.Message.Text != "" {
 				log.Printf("[TELEGRAM] Mensagem recebida de ChatID %d: %s", update.Message.Chat.ID, update.Message.Text)
-				go handleTelegramCommand(currentToken, update.Message.Chat.ID, update.Message.Text)
-			}
+				handleTelegramCommand(currentToken, update.Message.Chat.ID, update.Message.Text)
+			} 
 		}
 	}
 }

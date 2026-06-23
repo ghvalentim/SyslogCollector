@@ -1,18 +1,20 @@
 package api
 
 import (
-	"fmt"
-	_ "github.com/redis/go-redis/v9"
-	_ "github.com/lib/pq"
 	"bytes"
+	"html"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+
+	_ "github.com/lib/pq"
+	_ "github.com/redis/go-redis/v9"
 )
 
 type TelegramNotifier struct {
-	Token  string
-	ChatID int64
+	Token   string
+	ChatID  int64
 	message string
 }
 
@@ -32,8 +34,6 @@ type MSTeamsNotifier struct {
 type DiscordNotifier struct {
 	WebhookURL string
 }
-
-
 
 func NewMailNotifier(server string, port int, username, password, fromEmail, toEmail string) *MailNotifier {
 	return &MailNotifier{
@@ -70,8 +70,13 @@ type AlertNotifier interface {
 }
 
 func (t *TelegramNotifier) Notify(ruleName string, occurrences int, windowMinutes int, sampleLog string) error {
-	message := fmt.Sprintf("🚨 *Alerta de Segurança*\n\n*Regra:* %s\n*Ocorrências:* %d\n*Janela de Tempo:* %d minutos\n*Exemplo de Log:* \n```\n%s\n```", ruleName, occurrences, windowMinutes, truncateString(sampleLog, 500))
-	return sendTelegramMessage(t.Token, t.ChatID, message)
+	message := fmt.Sprintf("🚨 *Alerta de Segurança*\n\n*Regra:* %s\n*Ocorrências:* %d\n*Janela de Tempo:* %d minutos\n*Exemplo de Log:*\n```\n%s\n```",
+	ruleName, occurrences, windowMinutes, html.EscapeString(truncateString(sampleLog, 500)))
+
+	if err := sendTelegramMessage(t.Token, t.ChatID, message); err != nil {
+		return fmt.Errorf("falha ao enviar notificação para o Telegram: %v", err)
+	}
+	return nil
 }
 
 func (m *MailNotifier) Notify(ruleName string, occurrences int, windowMinutes int, sampleLog string) error {
@@ -89,7 +94,6 @@ func (d *DiscordNotifier) Notify(ruleName string, occurrences int, windowMinutes
 	return nil
 }
 
-
 // truncateString corta o log se for demasiado grande para a notificação
 func truncateString(str string, length int) string {
 	if len(str) <= length {
@@ -103,7 +107,7 @@ func sendTelegramMessage(token string, chatID int64, message string) error {
 	payload := map[string]interface{}{
 		"chat_id":    chatID,
 		"text":       message,
-		"parse_mode": "Markdown",
+		"parse_mode": "HTML",
 	}
 
 	jsonPayload, _ := json.Marshal(payload)
@@ -113,9 +117,26 @@ func sendTelegramMessage(token string, chatID int64, message string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("falha ao enviar mensagem para o Telegram. Status Code: %d, Resposta: %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		Ok          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return fmt.Errorf("falha ao analisar resposta do Telegram: %v", err)
+	}
+
+	if !result.Ok {
+		return fmt.Errorf("falha ao enviar mensagem para o Telegram: %s", result.Description)
 	}
 
 	return nil
