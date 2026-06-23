@@ -22,7 +22,7 @@ func InitRedis() {
 func SyncPolicyToRedis() {
 	var enabled bool; var minSev, appsStr, hostsStr, kwStr string
 	DB.QueryRow("SELECT enabled, minimum_severity, ignored_apps, ignored_hosts, ignored_keywords FROM log_policies WHERE id=1").Scan(&enabled, &minSev, &appsStr, &hostsStr, &kwStr)
-	policy := models.LogPolicy{ Enabled: enabled, MinimumSeverity: minSev, IgnoredApps: parseList(appsStr), IgnoredHosts: parseList(hostsStr), IgnoredKeywords: parseList(kwStr) }
+	policy := model.LogPolicy{ Enabled: enabled, MinimumSeverity: minSev, IgnoredApps: parseList(appsStr), IgnoredHosts: parseList(hostsStr), IgnoredKeywords: parseList(kwStr) }
 	jsonData, _ := json.Marshal(policy)
 	Rdb.Set(Ctx, "active_log_policy", jsonData, 0)
 	Rdb.Publish(Ctx, "policy_updates", "reload")

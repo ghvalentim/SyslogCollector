@@ -11,7 +11,7 @@ import (
 
 // --- POLÍTICAS ---
 func servePoliciesView(w http.ResponseWriter, r *http.Request) {
-	var data models.PolicyViewData
+	var data model.PolicyViewData
 	database.DB.QueryRow("SELECT enabled, minimum_severity, ignored_apps, ignored_hosts, ignored_keywords FROM log_policies WHERE id=1").Scan(&data.Policy.Enabled, &data.Policy.MinimumSeverity, &data.AppsStr, &data.HostsStr, &data.KeywordsStr)
 	data.Stats = map[string]string{ "TotalRecebidos": getRedisStat("stats:received_total"), "TotalGuardados": getRedisStat("stats:stored_total"), "TotalFiltrados": getRedisStat("stats:filtered_total"), "BySeverity": getRedisStat("stats:filtered_severity"), "ByApp": getRedisStat("stats:filtered_app"), "ByHost": getRedisStat("stats:filtered_host"), "ByKeyword": getRedisStat("stats:filtered_keyword") }
 	RenderTemplate(w, "templates/policies.html", data)

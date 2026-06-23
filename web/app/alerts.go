@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"syslog-web/database"
-	"syslog-web/models"
-	"syslog-web/api/telegram"
+	"os"
 	"time"
-
-	_ "github.com/lib/pq"
+	"syslog-web/database"
+	"syslog-web/api/notifier"
+	"syslog-web/models"
 )
 
 func InitAlerts() {
-	// Inicializa o motor de alertas em background
 	go StartAlertEngine()
 }
+
+// --- ALERTAS ---
 
 // StartAlertEngine inicia a verificação periódica de regras (Corre a cada 30 segundos)
 func StartAlertEngine() {
@@ -29,31 +29,42 @@ func StartAlertEngine() {
 }
 
 func evaluateAlertRules() {
-	// 1. Inicializa o notificador do Telegram, aproveitando
-	// a build em api/telegram para inicializar com connect.go, database.go e notifier.go
-	cfg := telegram.ToConnect()
-	notifier := telegram.NewTelegramNotifier(cfg)
+	if database.DB == nil {
+		return
+	}
+
+	// 1. Ir buscar as configurações (Token seguro do .env e Chat ID da BD)
+	tgToken := os.Getenv("TG_BOT_TOKEN")
+	var tgChat string
+	
+	err := database.DB.QueryRow("SELECT tg_chat_id FROM settings WHERE id = 1").Scan(&tgChat)
+	if err != nil || tgToken == "" || tgChat == "" || tgToken == "coloque_aqui_o_seu_token_do_botfather" {
+		return // Não há notificações configuradas completamente, aborta a avaliação
+	}
+
+	// Instancia o notificador que agora atua como Adapter (definido em notifier.go)
+	notifier := notifier.NewTelegramNotifier(tgToken, tgChat)
 
 	// 2. Ir buscar as regras ATIVAS
 	rows, err := database.DB.Query("SELECT id, name, severity, source_type, keyword, threshold, window_minutes, last_triggered FROM alert_rules WHERE enabled = true")
 	if err != nil {
-		log.Printf("[ERRO ALERTA] Falha a ler regras: %v", err)
+		log.Printf("[ERRO ALERTA] Falha a ler regras da base de dados: %v", err)
 		return
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var rule models.AlertRule
+		var rule model.AlertRule
 		if err := rows.Scan(&rule.ID, &rule.Name, &rule.Severity, &rule.SourceType, &rule.Keyword, &rule.Threshold, &rule.WindowMinutes, &rule.LastTriggered); err != nil {
 			continue
 		}
 
 		// Prevenir spam: Só permite disparar a mesma regra após o tempo da janela ter passado novamente
 		if rule.LastTriggered.Valid && time.Since(rule.LastTriggered.Time) < time.Duration(rule.WindowMinutes)*time.Minute {
-			continue
+			continue 
 		}
 
-		// 3. Contar ocorrências nos últimos X minutos
+		// 3. Contar ocorrências nos últimos X minutos (Query Dinâmica)
 		countQuery := "SELECT COUNT(*), MAX(payload) FROM syslogs WHERE timestamp >= NOW() - INTERVAL '1 minute' * $1"
 		var args []interface{}
 		args = append(args, rule.WindowMinutes)
@@ -79,23 +90,23 @@ func evaluateAlertRules() {
 		var lastPayload sql.NullString
 		err = database.DB.QueryRow(countQuery, args...).Scan(&count, &lastPayload)
 		if err != nil {
-			log.Printf("[ERRO ALERTA] Falha na query de contagem: %v", err)
+			log.Printf("[ERRO ALERTA] Falha na query de contagem de logs: %v", err)
 			continue
 		}
 
-		// 4. Se passou o limite, DISPARAR ALERTA!
+		// 4. Se passou o limite de ocorrências, DISPARAR ALERTA!
 		if count >= rule.Threshold {
 			sample := "Sem payload legível"
 			if lastPayload.Valid {
 				sample = lastPayload.String
 			}
 
-			// Dispara a notificação via interface
+			// Dispara a notificação. Qualquer erro de API/JSON volta empacotado aqui (%w)
 			err := notifier.Notify(rule.Name, count, rule.WindowMinutes, sample)
 			if err != nil {
-				log.Printf("[ERRO ALERTA] Falha ao enviar telegram: %v", err)
+				log.Printf("[ERRO ALERTA] %v", err) // Agora o log de erro será detalhado e exato
 			} else {
-				// Atualiza a hora do último disparo na BD para evitar spam
+				// Atualiza a hora do último disparo na BD com sucesso para evitar spam
 				database.DB.Exec("UPDATE alert_rules SET last_triggered = NOW() WHERE id = $1", rule.ID)
 			}
 		}
@@ -103,21 +114,23 @@ func evaluateAlertRules() {
 }
 
 func ServeAlertsView(w http.ResponseWriter, r *http.Request) {
-	var rules []models.AlertRule
-	rows, _ := database.DB.Query("SELECT id, enabled, name, severity, source_type, keyword, threshold, window_minutes, last_triggered FROM alert_rules ORDER BY id DESC")
-	defer rows.Close()
-
-	for rows.Next() {
-		var ar models.AlertRule
-		rows.Scan(&ar.ID, &ar.Enabled, &ar.Name, &ar.Severity, &ar.SourceType, &ar.Keyword, &ar.Threshold, &ar.WindowMinutes, &ar.LastTriggered)
-		rules = append(rules, ar)
+	var rules []model.AlertRule
+	rows, err := database.DB.Query("SELECT id, enabled, name, severity, source_type, keyword, threshold, window_minutes, last_triggered FROM alert_rules ORDER BY id DESC")
+	
+	if err == nil && rows != nil {
+		defer rows.Close()
+		for rows.Next() {
+			var ar model.AlertRule
+			rows.Scan(&ar.ID, &ar.Enabled, &ar.Name, &ar.Severity, &ar.SourceType, &ar.Keyword, &ar.Threshold, &ar.WindowMinutes, &ar.LastTriggered)
+			rules = append(rules, ar)
+		}
 	}
-
+	
 	RenderTemplate(w, "templates/alerts.html", rules)
 }
 
 func SaveAlertRule(w http.ResponseWriter, r *http.Request) {
-	database.DB.Exec("INSERT INTO alert_rules (name, severity, source_type, keyword, threshold, window_minutes) VALUES ($1, $2, $3, $4, $5, $6)",
+	database.DB.Exec("INSERT INTO alert_rules (name, severity, source_type, keyword, threshold, window_minutes) VALUES ($1, $2, $3, $4, $5, $6)", 
 		r.FormValue("name"), r.FormValue("severity"), r.FormValue("source_type"), r.FormValue("keyword"), r.FormValue("threshold"), r.FormValue("window"))
 	w.Write([]byte(`<div class="p-3 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 text-sm flex items-center font-medium"><i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Regra base gravada. Motor de avaliação em execução.</div><script>lucide.createIcons();</script>`))
 }
@@ -125,7 +138,7 @@ func SaveAlertRule(w http.ResponseWriter, r *http.Request) {
 func DeleteAlertRule(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	database.DB.Exec("DELETE FROM alert_rules WHERE id = $1", id)
-
+	
 	// Retorna a vista atualizada (HTMX substitui a tabela automaticamente)
 	ServeAlertsView(w, r)
 }

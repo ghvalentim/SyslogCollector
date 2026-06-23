@@ -12,7 +12,7 @@ import (
 
 // --- DEFINIÇÕES E FERRAMENTAS ---
 func ServeSettingsView(w http.ResponseWriter, r *http.Request) {
-	var s models.Settings
+	var s model.Settings
 	database.DB.QueryRow("SELECT retention_days, admin_user, tg_chat_id FROM settings WHERE id = 1").Scan(&s.Retention, &s.User, &s.TgChatID)
 	tgToken := os.Getenv("TG_BOT_TOKEN");
 

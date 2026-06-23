@@ -32,7 +32,7 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 
 func serveLogin(w http.ResponseWriter, r *http.Request) {
-	var s models.Settings
+	var s model.Settings
 	if r.Method == "POST" {
 		user, pass := r.FormValue("username"), r.FormValue("password")
 		var DBUser, DBPass string
