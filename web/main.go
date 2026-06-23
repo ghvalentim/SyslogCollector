@@ -3,8 +3,8 @@ package main
 import (
 
 	"syslog-web/app"
-	"syslog-web/api"
 	"syslog-web/database"
+	"syslog-web/api/telegram"
 	_ "github.com/lib/pq"
 )
 
@@ -15,7 +15,7 @@ func main() {
 	database.InitData()
 	app.InitServices()
 	app.InitRoutes()
-	api.InitTelegramBot()
+	telegram.InitBot()
 	app.InitAlerts()
 
 

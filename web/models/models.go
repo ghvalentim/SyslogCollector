@@ -60,16 +60,6 @@ type AlertRule struct {
 	LastTriggered  sql.NullTime
 }
 
-type AlertNotification struct {
-	RuleName      string
-	Occurrences   int
-	WindowMinutes int
-	SampleLog     string
-}
 
-type API struct {
-	Token string
-	EndpointURL string
-	Requests func(method, url string, body []byte) (respBody []byte, err error)
-}
+
 

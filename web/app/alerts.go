@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
-	"syslog-web/api"
 	"syslog-web/database"
 	"syslog-web/models"
+	"syslog-web/api/telegram"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -31,25 +29,10 @@ func StartAlertEngine() {
 }
 
 func evaluateAlertRules() {
-	// 1. Ir buscar as configurações (Token do .env e Chat ID da BD)
-	tgToken := os.Getenv("TG_BOT_TOKEN")
-	var tgChat string
-
-	if database.DB == nil {
-		return
-	}
-
-	err := database.DB.QueryRow("SELECT tg_chat_id FROM settings WHERE id = 1").Scan(&tgChat)
-
-	if err != nil || tgToken == "" || tgChat == "" || tgToken == "coloque_aqui_o_seu_token_do_botfather" {
-		return // Não há notificações configuradas completamente
-	}
-
-	tgChatID, err := strconv.ParseInt(tgChat, 10, 64)
-	if err != nil {
-		return
-	}
-	notifier := api.NewTelegramNotifier(tgToken, tgChatID)
+	// 1. Inicializa o notificador do Telegram, aproveitando
+	// a build em api/telegram para inicializar com connect.go, database.go e notifier.go
+	cfg := telegram.ToConnect()
+	notifier := telegram.NewTelegramNotifier(cfg)
 
 	// 2. Ir buscar as regras ATIVAS
 	rows, err := database.DB.Query("SELECT id, name, severity, source_type, keyword, threshold, window_minutes, last_triggered FROM alert_rules WHERE enabled = true")
