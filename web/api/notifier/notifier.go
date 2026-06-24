@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"time"
-
 	"syslog-web/api/telegram" // Ajuste este import caso o nome do seu módulo no go.mod seja diferente
 )
 
@@ -26,6 +25,7 @@ func NewTelegramNotifier(token, chatID string) *TelegramNotifier {
 		ChatID: chatID,
 	}
 }
+
 
 // Notify formata o texto do alerta e invoca o cliente da API para o envio seguro
 func (t *TelegramNotifier) Notify(ruleName string, occurrences int, windowMinutes int, sampleLog string) error {
@@ -56,6 +56,8 @@ func (t *TelegramNotifier) Notify(ruleName string, occurrences int, windowMinute
 
 	return nil
 }
+
+
 
 // truncateString corta o log se for demasiado grande para evitar limites de tamanho na mensagem
 func truncateString(str string, length int) string {
