@@ -1,75 +1,156 @@
 package telegram
 
 import (
-	"log"
-	"fmt"
-	"bytes"
-	"encoding/json"
-	"io"
+	buf "bufio"
+	"context"
+	fmt "fmt"
+	log "log"
+	os "os"
+	"strings"
+
+	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+var (
+	firstMenu = "<b>Menu Principal</b>\n\n"
 
-func (c *Client) InitBot() {
-	if c.Token == "" {
-		log.Fatal("Token do Telegram não configurado. O bot não será inicializado.")
+	configButton = "Configurações"
+	idButton     = "ID do Chat"
+	backButton   = "Voltar"
+
+	screaming = false
+	bot       *api.BotAPI
+
+	firstMenuMarkup = api.NewInlineKeyboardMarkup(
+		api.NewInlineKeyboardRow(
+			api.NewInlineKeyboardButtonData(configButton, configButton),
+		),
+		api.NewInlineKeyboardRow(
+			api.NewInlineKeyboardButtonData(idButton, idButton),
+		),
+		api.NewInlineKeyboardRow(
+			api.NewInlineKeyboardButtonData(backButton, backButton),
+		),
+	)
+)
+
+func InitBot() {
+	var err error
+	bot, err = api.NewBotAPI(os.Getenv("TELEGRAM_BOT_TOKEN"))
+	if err != nil {
+		log.Panic(err)
+	}
+
+	bot.Debug = false
+
+	u := api.NewUpdate(0)
+	u.Timeout = 60
+
+	parentCtx := context.Background()
+	ctx, cancel := context.WithCancel(parentCtx)
+
+	updates := bot.GetUpdatesChan(u)
+
+	go receiveUpdates(ctx, updates)
+
+	log.Println("Bot do Telegram iniciado com sucesso!")
+
+	buf.NewReader(os.Stdin).ReadString('\n')
+	cancel()
+}
+
+func receiveUpdates(ctx context.Context, updates api.UpdatesChannel) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case update := <-updates:
+			handleUpdate(update)
+		}
+	}
+}
+
+func handleUpdate(update api.Update) {
+	switch {
+	case update.Message != nil:
+		handleMessage(update.Message)
+	case update.CallbackQuery != nil:
+		handleButton(update.CallbackQuery)
+	}
+}
+
+func handleMessage(message *api.Message) {
+	user := message.From
+	text := message.Text
+
+	if user == nil {
 		return
 	}
 
-	offset := 0
+	log.Printf("Mensagem recebida de %s: %s", user.FirstName, text)
 
-	for { url := fmt.Sprintf("https://api.telegram.org/bot%s/getUpdates?offset=%d&timeout=60", c.Token, offset)
-	resp, err := c.HTTPClient.Get(url)
+	var err error
+
+	if strings.HasPrefix(text, "/") {
+		err = handleCommand(message.Chat.ID, text)
+	} else if screaming && len(text) > 0 {
+		msg := api.NewMessage(message.Chat.ID, strings.ToUpper(text))
+		msg.Entities = message.Entities
+		_, err = bot.Send(msg)
+	} else {
+		copyMsg := api.NewCopyMessage(message.Chat.ID, message.Chat.ID, message.MessageID)
+		_, err = bot.Send(copyMsg)
+	}
+
 	if err != nil {
-		log.Printf("Erro ao contactar a API do Telegram: %v", err)
-		continue
+		log.Printf("Erro ao enviar mensagem: %v", err)
 	}
+}
 
-	body, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		log.Printf("Erro ao ler a resposta da API do Telegram: %v", err)
-		continue
-	}
+func handleCommand(chatID int64, command string) error {
+	var err error
 
-	var result TelegramResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		log.Printf("Erro ao decodificar a resposta da API do Telegram: %v", err)
-		continue
-	}
-
-	for _, update := range result.Result {
-		offset = update.UpdateID + 1 // Atualiza o offset para o próximo update
-		chatID := update.Message.Chat.ID
-		text := update.Message.Text
-		
-		log.Printf("Recebida mensagem do chat_id %d: %s", chatID, text)
-
-	var reply string 
-
-	switch text {
+	switch command {
 	case "/start":
-		reply = "Seja bem-vindo! Este bot está configurado para receber alertas do Syslog-Web."
-	case "/id":
-		reply = fmt.Sprintf("O seu chat_id é: %d", chatID)
+		msg := api.NewMessage(chatID, firstMenu)
+		msg.ParseMode = "HTML"
+		msg.ReplyMarkup = firstMenuMarkup
+		_, err = bot.Send(msg)
 	default:
-		reply = "Comando não reconhecido. Use /start para iniciar ou /id para obter o seu chat_id."
+		msg := api.NewMessage(chatID, "Comando não reconhecido.")
+		_, err = bot.Send(msg)
 	}
-
-	msg := SendMessageRequest{
-		ChatID: chatID,
-		Text:   reply,
-	}
-
-	payload, _ := json.Marshal(msg)
-	sendMessageURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", c.Token)
-	if _, err = c.HTTPClient.Post(sendMessageURL, "application/json", bytes.NewBuffer(payload)); 
-	
-	err != nil {
-		log.Println("Erro ao enviar mensagem de resposta:", err)
-	}
-
+	return err
 }
 
+func handleButton(query *api.CallbackQuery) {
+	var text string
+
+	markup := api.NewInlineKeyboardMarkup()
+	message := query.Message
+
+	if query.Data == configButton {
+		text = "Configurações do Bot:\n\n" +
+			"- Para configurar o bot, edite o arquivo .env e reinicie o serviço.\n" +
+			"- Certifique-se de que o token do bot e o chat_id estão corretos.\n" +
+			"- Use o botão 'ID do Chat' para obter seu chat_id."
+	} else if query.Data == idButton {
+		text = fmt.Sprintf("Seu ID do Chat é: <code>%d</code>", message.Chat.ID)
+	}
+
+	callbackCfg := api.NewCallback(query.ID, text)
+	bot.Send(callbackCfg)
+
+	msg := api.NewEditMessageTextAndMarkup(message.Chat.ID, message.MessageID, text, markup)
+	msg.ParseMode = api.ModeHTML
+	bot.Send(msg)
 }
 
+func SendMenu(chatID int64) error {
+	msg := api.NewMessage(chatID, firstMenu)
+	msg.ParseMode = api.ModeHTML
+	msg.ReplyMarkup = firstMenuMarkup
+
+	_, err := bot.Send(msg)
+	return err
 }

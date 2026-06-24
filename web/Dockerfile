@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Instalar dependências do sistema
 RUN apk add --no-cache git ca-certificates
@@ -11,7 +11,9 @@ ENV GOPROXY=https://proxy.golang.org,direct
 # Inicializar o módulo e descarregar as dependências
 RUN go mod init syslog-web && \
     go get github.com/redis/go-redis/v9 && \
-    go get github.com/lib/pq
+    go get github.com/lib/pq && \
+    go get github.com/go-telegram-bot-api/telegram-bot-api/v5
+
 
 # Copiar os ficheiros da raiz
 COPY main.go .
