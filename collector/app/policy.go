@@ -8,16 +8,23 @@ import (
 	"sync"
 )
 
+// --- POLÍTICA DE FILTRAGEM DE LOGS ---
+
+// ctx é o contexto global usado para operações Redis.
 var ctx = context.Background()
+// activePolicy mantém a política de logs atualmente ativa, carregada do Redis.
 var activePolicy LogPolicy
+// policyMutex protege o acesso à activePolicy para leituras e escritas concorrentes.
 var policyMutex sync.RWMutex
 
 
+// InitPolicies inicializa a política de logs, carregando-a do Redis e configurando um watcher para atualizações em tempo real.
 func InitPolicies(rdb *redis.Client) {
 	loadPolicyFromRedis(rdb)
 	go watchPolicyUpdates(rdb)
 }
 
+// loadPolicyFromRedis carrega a política de logs do Redis e atualiza a variável activePolicy.
 func loadPolicyFromRedis(rdb *redis.Client) {
 	if val, err := rdb.Get(ctx, "active_log_policy").Result(); err == nil {
 		var p LogPolicy
@@ -29,12 +36,14 @@ func loadPolicyFromRedis(rdb *redis.Client) {
 	}
 }
 
+// watchPolicyUpdates assina o canal de atualizações de política no Redis e recarrega a política sempre que uma atualização é publicada.
 func watchPolicyUpdates(rdb *redis.Client) {
 	pubsub := rdb.Subscribe(ctx, "policy_updates")
 	defer pubsub.Close()
 	for range pubsub.Channel() { loadPolicyFromRedis(rdb) }
 }
 
+// ApplyPolicies aplica a política de logs ao LogEntry fornecido, retornando true se o log deve ser armazenado, ou false se deve ser descartado.
 func ApplyPolicies(rdb *redis.Client, entry *LogEntry) bool {
 	policyMutex.RLock(); p := activePolicy; policyMutex.RUnlock()
 	if !p.Enabled { return true }

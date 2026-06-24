@@ -7,6 +7,7 @@ import (
 	"log"
 )
 
+// InitRoutes inicializa as rotas HTTP para o painel de administração e APIs.
 func InitRoutes() {
 
 // Rotas Públicas e Ficheiros Estáticos

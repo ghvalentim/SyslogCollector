@@ -11,8 +11,9 @@ import (
 )
 
 // --- DEFINIÇÕES E FERRAMENTAS ---
+// ServeSettingsView renderiza a página de definições da aplicação, incluindo informações sobre o bot do Telegram.
 func ServeSettingsView(w http.ResponseWriter, r *http.Request) {
-	var s model.Settings
+	var s models.Settings
 	database.DB.QueryRow("SELECT retention_days, admin_user, tg_chat_id FROM settings WHERE id = 1").Scan(&s.Retention, &s.User, &s.TgChatID)
 	tgToken := os.Getenv("TG_BOT_TOKEN");
 
@@ -35,6 +36,7 @@ func ServeSettingsView(w http.ResponseWriter, r *http.Request) {
 	RenderTemplate(w, "templates/settings.html", s)
 }
 
+// SaveSettings atualiza as definições da aplicação na base de dados com base nos valores enviados pelo formulário.
 func SaveSettings(w http.ResponseWriter, r *http.Request) {
 	retention := r.FormValue("retention")
 	user := r.FormValue("username")
@@ -50,8 +52,10 @@ func SaveSettings(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`<div class="p-3 bg-emerald-50 text-emerald-700 rounded-lg text-sm flex items-center font-medium"><i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Definições atualizadas com sucesso!</div><script>lucide.createIcons();</script>`))
 }
 
+// ServeToolsView renderiza a página de ferramentas administrativas.
 func ServeToolsView(w http.ResponseWriter, r *http.Request) { RenderTemplate(w, "templates/tools.html", nil) }
 
+// DownloadTool permite ao utilizador descarregar scripts de ferramentas administrativas específicas, como abrir a Firewall ou gerir permissões.
 func DownloadTool(w http.ResponseWriter, r *http.Request) {
 	var c, f string
 	switch r.URL.Query().Get("action") {

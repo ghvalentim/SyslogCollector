@@ -17,11 +17,13 @@ var (
 	Ctx = context.Background()
 )
 
+// InitData inicializa a base de dados PostgreSQL e o cliente Redis.
 func InitData() {
 	InitRedis()
 	InitSQL()
 }
 
+// InitSQL inicializa a base de dados PostgreSQL, criando tabelas e colunas necessárias se não existirem, e sincroniza a política de logs para o Redis.
 func InitSQL() {
 	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_NAME"))
 	for i := 0; i < 5; i++ {

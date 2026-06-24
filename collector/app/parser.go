@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+
+// formatSeverity converte o código de severidade num nome legível, como "Emergência", "Alerta", "Crítico", etc.
 func formatSeverity(sev uint8) string {
 	switch sev { 
 		case 0: return "Emergência"; 
@@ -22,6 +24,7 @@ func formatSeverity(sev uint8) string {
 		default: return "Info" }
 }
 
+// extractSyslogData extrai os campos relevantes de uma mensagem syslog e preenche a estrutura LogEntry.
 func extractSyslogData(entry *LogEntry, msg syslog.Message) {
 	switch m := msg.(type) {
 	case *rfc5424.SyslogMessage:
@@ -41,6 +44,7 @@ func extractSyslogData(entry *LogEntry, msg syslog.Message) {
 	}
 }
 
+// ParseSyslog tenta analisar a mensagem syslog usando os formatos RFC5424 e RFC3164, preenchendo os campos do LogEntry.
 func ParseSyslog(entry *LogEntry) {
     if msg, err := rfc5424.NewParser().Parse([]byte(entry.Payload)); err == nil && msg != nil {
         extractSyslogData(entry, msg)
@@ -52,6 +56,8 @@ func ParseSyslog(entry *LogEntry) {
     }
 }
 
-/* Função de parsing que tenta primeiro o formato RFC5424, e se falhar, tenta o RFC3164.
-Ela preenche os campos do LogEntry com os dados extraídos, 
-e pode ser expandida para suportar outros formatos ou campos personalizados. */
+/* Parser.go contém funções para analisar mensagens syslog recebidas, 
+extraindo campos relevantes e preenchendo a estrutura LogEntry.
+As mensagens são analisadas usando os formatos RFC5424 e RFC3164, 
+garantindo compatibilidade com diferentes tipos de syslog.
+*/

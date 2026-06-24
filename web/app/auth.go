@@ -10,7 +10,7 @@ import (
 )
 
 
-// --- MIDDLEWARES & RENDERS ---
+// AuthMiddleware é um middleware que verifica se o utilizador está autenticado antes de permitir o acesso a certas rotas.
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		validPaths := map[string]bool{ "/": true, "/logs": true, "/export": true, "/stats/view": true, "/api/stats": true, "/settings/view": true, "/settings/save": true, "/tools/view": true, "/tools/download": true, "/policies/view": true, "/policies/save": true, "/alerts/view": true, "/alerts/save": true }
@@ -30,9 +30,9 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-
+// ServeLoginView renderiza a página de login.
 func serveLogin(w http.ResponseWriter, r *http.Request) {
-	var s model.Settings
+	var s models.Settings
 	if r.Method == "POST" {
 		user, pass := r.FormValue("username"), r.FormValue("password")
 		var DBUser, DBPass string
@@ -49,6 +49,7 @@ func serveLogin(w http.ResponseWriter, r *http.Request) {
 	RenderTemplate(w, "templates/login.html", s)
 }
 
+// handleLogout termina a sessão do utilizador e redireciona para a página de login.
 func handleLogout(w http.ResponseWriter, r *http.Request) { http.SetCookie(w, &http.Cookie{Name: "admin_session", Value: "", Path: "/", MaxAge: -1}); http.Redirect(w, r, "/login", http.StatusSeeOther) }
 
 
@@ -63,6 +64,7 @@ func RenderTemplate(w http.ResponseWriter, path string, data interface{}) {
 	t.Execute(w, data)
 }
 
+// ServeStaticFiles serve ficheiros estáticos (CSS, JS, imagens) a partir do diretório "assets".
 func serveDashboard(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "index.html") }
 func serveScript(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "assets/script.js") }
 func serveStyles(w http.ResponseWriter, r *http.Request) { w.Header().Set("Content-Type", "text/css"); http.ServeFile(w, r, "assets/output.css") }

@@ -11,6 +11,7 @@ import (
 )
 
 
+// InitServices inicializa os workers de processamento de logs e retenção de dados.
 func InitServices() {
 	go logWorker()
 	go retentionWorker()
@@ -18,17 +19,19 @@ func InitServices() {
 
 
 // --- WORKERS ---
+// logWorker processa logs recebidos do Redis e os insere na base de dados PostgreSQL.
 func logWorker() {
 	defer func() { if r := recover(); r != nil { time.Sleep(2 * time.Second); go logWorker() } }()
 	for {
 		res, err := database.Rdb.BRPop(database.Ctx, 0, "syslog_queue").Result(); if err != nil { time.Sleep(1 * time.Second); continue }
-		var e model.LogEntry; if json.Unmarshal([]byte(res[1]), &e) != nil { continue }
+		var e models.LogEntry; if json.Unmarshal([]byte(res[1]), &e) != nil { continue }
 		
 		_, err = database.DB.Exec(`INSERT INTO syslogs (timestamp, source_ip, protocol, hostname, app_name, severity, facility, facility_name, source_type, payload) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, e.Timestamp, e.SourceIP, e.Protocol, e.Hostname, e.AppName, e.Severity, e.Facility, e.FacilityName, e.SourceType, e.Payload)
 		if err != nil { database.Rdb.LPush(database.Ctx, "syslog_queue", res[1]); time.Sleep(2 * time.Second) }
 	}
 }
 
+// retentionWorker remove logs antigos da base de dados com base na política de retenção configurada.
 func retentionWorker() {
 	for {
 		var days int

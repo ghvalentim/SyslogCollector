@@ -11,6 +11,9 @@ import (
 	_ "github.com/lib/pq"
 )
 
+
+// --- LOGS ---
+// buildLogsQuery constrói a query SQL para buscar logs com base nos parâmetros da requisição.
 func buildLogsQuery(r *http.Request, limit int) (string, []interface{}) {
 	q, sev, source := r.URL.Query().Get("q"), r.URL.Query().Get("sev"), r.URL.Query().Get("source")
 	query := "SELECT id, timestamp, source_ip, protocol, hostname, app_name, severity, facility, facility_name, source_type, payload FROM syslogs WHERE 1=1"
@@ -25,15 +28,16 @@ func buildLogsQuery(r *http.Request, limit int) (string, []interface{}) {
 	return query, args
 }
 
+// fetchLogsHTML busca logs da base de dados e renderiza a página HTML com os resultados.
 func fetchLogsHTML(w http.ResponseWriter, r *http.Request) {
 	query, args := buildLogsQuery(r, 50)
 	rows, err := database.DB.Query(query, args...)
 	if err != nil { http.Error(w, "Erro", http.StatusInternalServerError); return }
 	defer rows.Close()
 
-	var logs []model.LogEntry
+	var logs []models.LogEntry
 	for rows.Next() {
-		var l model.LogEntry; var ts time.Time
+		var l models.LogEntry; var ts time.Time
 		if rows.Scan(&l.ID, &ts, &l.SourceIP, &l.Protocol, &l.Hostname, &l.AppName, &l.Severity, &l.Facility, &l.FacilityName, &l.SourceType, &l.Payload) == nil {
 			l.Timestamp = ts.Format("2006-01-02 15:04:05"); logs = append(logs, l)
 		}
@@ -41,6 +45,7 @@ func fetchLogsHTML(w http.ResponseWriter, r *http.Request) {
 	RenderTemplate(w, "templates/logs.html", logs)
 }
 
+// exportCSV exporta logs da base de dados para um ficheiro CSV e envia como resposta HTTP.
 func exportCSV(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", "attachment;filename=syslogs.csv")
@@ -48,9 +53,10 @@ func exportCSV(w http.ResponseWriter, r *http.Request) {
 	writer := csv.NewWriter(w); defer writer.Flush()
 	writer.Write([]string{"ID", "Data", "Origem IP", "Host", "App", "Source Type", "Facility", "Gravidade", "Msg"})
 	query, args := buildLogsQuery(r, 2000); rows, _ := database.DB.Query(query, args...); defer rows.Close()
-	for rows.Next() { var l model.LogEntry; var ts time.Time; if rows.Scan(&l.ID, &ts, &l.SourceIP, &l.Protocol, &l.Hostname, &l.AppName, &l.Severity, &l.Facility, &l.FacilityName, &l.SourceType, &l.Payload) == nil { writer.Write([]string{fmt.Sprint(l.ID), ts.Format("2006-01-02 15:04:05"), l.SourceIP, l.Hostname, l.AppName, l.SourceType, l.FacilityName, l.Severity, l.Payload}) } }
+	for rows.Next() { var l models.LogEntry; var ts time.Time; if rows.Scan(&l.ID, &ts, &l.SourceIP, &l.Protocol, &l.Hostname, &l.AppName, &l.Severity, &l.Facility, &l.FacilityName, &l.SourceType, &l.Payload) == nil { writer.Write([]string{fmt.Sprint(l.ID), ts.Format("2006-01-02 15:04:05"), l.SourceIP, l.Hostname, l.AppName, l.SourceType, l.FacilityName, l.Severity, l.Payload}) } }
 }
 
+// GetUserMail retorna o email do administrador configurado nas definições da aplicação.
 func GetUserMail() string {
 	var email string
 	database.DB.QueryRow("SELECT admin_email FROM settings WHERE id = 1").Scan(&email)

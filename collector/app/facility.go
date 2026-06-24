@@ -1,5 +1,6 @@
 package app
 
+// HumanizeFacility converte o código de facility num nome legível, como "Kernel", "User", "Mail", etc.
 func HumanizeFacility(facStr string) string {
 	facMap := map[string]string{
 		"0": "Kernel", "1": "User", "2": "Mail", "3": "Daemon", "4": "Auth", "5": "Syslog",

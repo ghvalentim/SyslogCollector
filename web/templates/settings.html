@@ -22,49 +22,90 @@
             </div>
         </div>
 
-        <!-- Bloco de Notificações (Telegram) -->
-        <div class="card p-6 space-y-5 bg-indigo-50 border-indigo-100">
-            <h3 class="text-lg font-bold border-b border-indigo-200 pb-2 mb-4 text-indigo-900 flex items-center">
-                <i data-lucide="send" class="w-5 h-5 mr-2"></i> Notificações Telegram
+        <!-- Bloco de Canais de Notificação (Checkbox Menu) -->
+        <div class="card p-6 space-y-5">
+            <h3 class="text-lg font-bold border-b border-slate-100 pb-2 mb-4 text-slate-800 flex items-center">
+                <i data-lucide="bell-ring" class="w-5 h-5 mr-2 text-blue-500"></i> Canais de Alerta
             </h3>
-            
-            {{if .TgBotUser}}
-            <!-- O Backend conseguiu ler o token do .env e obteve a info do Bot -->
-            <div class="text-sm text-indigo-800 bg-white p-5 rounded-xl border border-indigo-200 text-center shadow-sm">
-                <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i data-lucide="bot" class="w-6 h-6 text-indigo-600"></i>
-                </div>
-                <p class="font-bold text-lg mb-1">Bot Configurado e Seguro!</p>
-                <p class="text-indigo-600 mb-5">A chave API foi carregada pelo servidor a partir do <code>.env</code>. O sistema ligou-se ao bot <b>@{{.TgBotUser}}</b>.</p>
-                
-                <a href="https://t.me/{{.TgBotUser}}?start=true" target="_blank" class="btn bg-blue-500 text-white hover:bg-blue-600 w-full justify-center shadow-md font-bold py-2.5 transition-colors">
-                    <i data-lucide="external-link" class="w-4 h-4 mr-2"></i> Ativar Bot no Telegram
-                </a>
-                
-                <p class="text-xs text-slate-500 mt-3 px-2">Clique no botão acima para abrir a sua aplicação do Telegram. Envie a mensagem que aparecer. O bot responderá de imediato com o seu código de destino (Chat ID).</p>
-            </div>
-            {{else}}
-            <!-- Aviso: Sem Token no .env -->
-            <div class="text-sm text-amber-800 bg-amber-50 p-4 rounded-lg border border-amber-200 text-center shadow-sm">
-                <i data-lucide="alert-triangle" class="w-8 h-8 text-amber-500 mx-auto mb-2"></i>
-                <p class="font-bold text-base mb-1">Falta Chave de API Segura</p>
-                <p class="text-amber-700 leading-relaxed">Não foi detetado um token válido de Telegram.<br>Aceda ao ficheiro <code>.env</code> do servidor, preencha <code>TG_BOT_TOKEN</code> com o código do BotFather e reinicie o Docker.</p>
-            </div>
-            {{end}}
+            <p class="text-sm text-slate-500 mb-4">Escolha por onde deseja receber as notificações de eventos críticos.</p>
 
-            <div>
-                <label class="form-label text-indigo-900 mt-2">Código de Destino (Chat ID)</label>
-                <input type="text" name="tg_chat_id" value="{{.TgChatID}}" placeholder="Ex: -10012345678" class="form-input border-indigo-200 focus:border-indigo-500 bg-white shadow-sm font-mono text-center text-lg tracking-wider">
-                <p class="text-xs text-indigo-600 mt-1.5 text-center font-medium">Insira aqui o código numérico que o bot lhe fornecer.</p>
+            <!-- Opção Email -->
+            <div class="flex items-start p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                <div class="flex-shrink-0 mt-0.5">
+                    <input type="checkbox" name="notify_email" id="notify_email" class="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" {{if .NotifyEmail}}checked{{end}}>
+                </div>
+                <div class="ml-3 w-full">
+                    <label for="notify_email" class="font-bold text-slate-700 cursor-pointer flex items-center">
+                        <i data-lucide="mail" class="w-4 h-4 mr-1.5 text-slate-400"></i> E-mail Corporativo
+                    </label>
+                    <p class="text-xs text-slate-500 mt-1">Envia relatórios detalhados. Requer configuração das variáveis SMTP no ficheiro <code class="bg-slate-200 px-1 py-0.5 rounded text-slate-700 font-mono">.env</code>.</p>
+                </div>
+            </div>
+
+            <!-- Opção Telegram -->
+            <div class="flex items-start p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                <div class="flex-shrink-0 mt-0.5">
+                    <input type="checkbox" name="notify_telegram" id="notify_telegram" class="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" {{if .NotifyTelegram}}checked{{end}}>
+                </div>
+                <div class="ml-3 w-full">
+                    <label for="notify_telegram" class="font-bold text-slate-700 cursor-pointer flex items-center">
+                        <i data-lucide="send" class="w-4 h-4 mr-1.5 text-blue-400"></i> Telegram
+                    </label>
+                    <p class="text-xs text-slate-500 mt-1 mb-3">Receba notificações ultrarrápidas diretamente no seu telemóvel ou num grupo de IT.</p>
+                    <button type="button" onclick="document.getElementById('telegram-modal').showModal()" class="btn bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 w-full justify-center py-2 text-sm shadow-sm transition-all">
+                        <i data-lucide="settings-2" class="w-4 h-4 mr-2 text-slate-500"></i> Configurar alertas Telegram
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- Botão de Guardar Global -->
         <div class="xl:col-span-2 flex items-center space-x-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <button type="submit" class="btn-primary px-8 py-2.5"><i data-lucide="save" class="w-4 h-4 mr-2"></i> Guardar Configuração</button>
+            <button type="submit" class="btn-primary px-8 py-2.5"><i data-lucide="save" class="w-4 h-4 mr-2"></i> Guardar Definições</button>
             <div id="settings-msg" class="flex-1"></div>
         </div>
+
+        <!-- Modal Telegram (Caixa de Diálogo Nativa) -->
+        <dialog id="telegram-modal" class="backdrop:bg-slate-900/60 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-0 m-auto">
+            <div class="bg-slate-50 p-5 rounded-t-2xl border-b border-slate-200 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-indigo-900 flex items-center"><i data-lucide="send" class="w-5 h-5 mr-2 text-indigo-500"></i> Configuração do Telegram</h3>
+                <button type="button" onclick="document.getElementById('telegram-modal').close()" class="bg-white text-slate-400 hover:text-slate-700 p-1.5 rounded-lg border border-slate-200 shadow-sm transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-6 bg-white rounded-b-2xl space-y-6">
+                {{if .TgBotUser}}
+                <div class="text-sm text-indigo-800 bg-indigo-50 p-5 rounded-xl border border-indigo-100 text-center shadow-sm">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i data-lucide="bot" class="w-6 h-6 text-indigo-600"></i>
+                    </div>
+                    <p class="font-bold text-lg mb-1">Bot Configurado e Seguro!</p>
+                    <p class="text-indigo-600 mb-5">O sistema ligou-se ao bot <b>@{{.TgBotUser}}</b> através da chave do <code>.env</code>.</p>
+                    
+                    <a href="https://t.me/{{.TgBotUser}}?start=true" target="_blank" class="btn bg-blue-500 text-white hover:bg-blue-600 w-full justify-center shadow-md font-bold py-2.5 transition-colors">
+                        <i data-lucide="external-link" class="w-4 h-4 mr-2"></i> Ativar Bot no Telegram
+                    </a>
+                    <p class="text-xs text-slate-500 mt-3 px-2">Clique acima para abrir o Telegram, envie a mensagem e cole o número recebido abaixo.</p>
+                </div>
+                {{else}}
+                <div class="text-sm text-amber-800 bg-amber-50 p-4 rounded-xl border border-amber-200 text-center shadow-sm">
+                    <i data-lucide="alert-triangle" class="w-8 h-8 text-amber-500 mx-auto mb-2"></i>
+                    <p class="font-bold text-base mb-1">Falta Chave de API</p>
+                    <p class="text-amber-700 leading-relaxed text-xs">Preencha <code>TG_BOT_TOKEN</code> no ficheiro <code>.env</code> com o código do BotFather e reinicie o sistema.</p>
+                </div>
+                {{end}}
+
+                <div>
+                    <label class="form-label text-slate-800 mb-2">Código de Destino (Chat ID)</label>
+                    <input type="text" name="tg_chat_id" value="{{.TgChatID}}" placeholder="Ex: -10012345678" class="form-input bg-slate-50 focus:bg-white focus:border-indigo-500 shadow-inner font-mono text-center text-lg tracking-wider">
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                    <button type="button" onclick="document.getElementById('telegram-modal').close()" class="btn-primary px-6">Concluído</button>
+                </div>
+            </div>
+        </dialog>
     </form>
 </div>
-<style>.fade-in { animation: fadeIn 0.3s ease-in-out; }</style>
+<style>.fade-in { animation: fadeIn 0.3s ease-in-out; } dialog::backdrop { backdrop-filter: blur(3px); }</style>
 <script>lucide.createIcons();</script>

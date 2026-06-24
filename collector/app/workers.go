@@ -7,20 +7,25 @@ import (
 	"encoding/json"
 )
 
+// --- WORKER POOL DE LOGS ---
+// logChan é o canal usado para enviar jobs de logs para a pool de workers.
 var logChan = make(chan LogJob, 10000) // Buffer da Worker Pool
 
+// InitWorker inicializa a pool de workers que processam logs recebidos do listener e os armazenam no Redis.
 func InitWorker(rdb *redis.Client) {
 	for i := 0; i < 10; i++ {
 		go workerPool(rdb)
 	}
 }
 
+//Worker Pool que processa logs recebidos do listener.
 func workerPool(rdb *redis.Client) {
 	for job := range logChan {
 		processAndQueueLog(rdb, job.SourceIP, job.Protocol, job.Payload)
 	}
 }
 
+// processAndQueueLog processa um log recebido, aplicando parsing, classificação, políticas, e se aprovado, armazena no Redis.
 func processAndQueueLog(rdb *redis.Client, sourceIP, protocol, rawPayload string) {
 	rdb.Incr(ctx, "stats:received_total")
 

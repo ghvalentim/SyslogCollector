@@ -6,11 +6,13 @@ import (
 	"strings"
 )
 
+// InitListener inicializa os servidores UDP e TCP para receber logs na porta 514.
 func InitListener() {
 	go startUDPServer()
 	startTCPServer()
 }
 
+// startUDPServer inicia um servidor UDP que escuta na porta 514 e envia logs recebidos para o canal logChan.
 func startUDPServer() {
 	addr := net.UDPAddr{Port: 514, IP: net.ParseIP("0.0.0.0")}
 	conn, err := net.ListenUDP("udp", &addr)
@@ -23,6 +25,7 @@ func startUDPServer() {
 	}
 }
 
+// startTCPServer inicia um servidor TCP que escuta na porta 514 e envia logs recebidos para o canal logChan.
 func startTCPServer() {
 	listener, err := net.Listen("tcp", ":514")
 	if err != nil { log.Fatalf("Erro TCP: %v", err) }
@@ -33,6 +36,7 @@ func startTCPServer() {
 	}
 }
 
+// handleTCPConnection lida com a conexão TCP recebida, lendo os dados e enviando para o canal logChan.
 func handleTCPConnection(conn net.Conn) {
 	defer conn.Close()
 	buf := make([]byte, 8192)

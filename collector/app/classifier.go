@@ -4,11 +4,13 @@ import (
 	"strings"
 )
 
-
+// containsAny verifica se a string 's' contém qualquer uma das substrings fornecidas em 'substrs'.
 func containsAny(s string, substrs []string) bool {
 	for _, sub := range substrs { if strings.Contains(s, sub) { return true } }; return false
 }
 
+// ClassifySource classifica a origem de um log com base no nome do aplicativo e no payload, 
+// retornando uma categoria como "Firewall", "Windows", "Linux", etc.
 func ClassifySource(appName, payload string) string {
 	text := strings.ToLower(appName + " " + payload)
 	

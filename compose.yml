@@ -49,6 +49,12 @@ services:
       DB_NAME: ${DB_NAME}
       DB_HOST: ${DB_HOST}
       TG_BOT_TOKEN: ${TG_BOT_TOKEN}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_TO:   ${SMTP_TO}
     depends_on:
       - redis
       - db
