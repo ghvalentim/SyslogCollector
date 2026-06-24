@@ -43,7 +43,7 @@ func evaluateAlertRules() {
 	var tgChat string
 	err := database.DB.QueryRow("SELECT tg_chat_id FROM settings WHERE id = 1").Scan(&tgChat)
 	if err == nil && tgToken != "" && tgChat != "" && tgToken != "coloque_aqui_o_seu_token_do_botfather" {
-		notifiers = append(notifiers, notifier.NewTelegramNotifier(tgToken, tgChat))
+		notifiers = append(notifiers, notifier.NewTelegramNotifier(tgChat))
 	}
 
 	// ==========================================

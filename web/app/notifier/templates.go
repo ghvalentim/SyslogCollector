@@ -12,9 +12,10 @@ type AlertNotifier interface {
 
 // TelegramNotifier implementa a interface AlertNotifier conectando ao nosso pacote telegram limpo
 type TelegramNotifier struct {
-	Client *telegram.Client // Desacoplado, armazena apenas a referência ao cliente HTTP/API
-	ChatID string           // Mantido como string porque provém diretamente da Base de Dados (settings)
+	BotClient *telegram.BotClient // Desacoplado, armazena apenas a referência ao cliente HTTP/API
+	ChatID string
 }
+	           // Mantido como string porque provém diretamente da Base de Dados (settings)
 
 // EmailNotifier implementa a interface AlertNotifier conectando ao nosso pacote mailer limpo
 type EmailNotifier struct {

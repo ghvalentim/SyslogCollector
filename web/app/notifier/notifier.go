@@ -3,52 +3,36 @@ package notifier
 import (
 	"fmt"
 	"strconv"
-	"time"
 	"syslog-web/api/telegram" // Ajuste este import caso o nome do seu módulo no go.mod seja diferente
-	"syslog-web/mailer"   // Ajuste este import caso o nome do seu módulo no go.mod seja diferente
+	"syslog-web/mailer"       // Ajuste este import caso o nome do seu módulo no go.mod seja diferente
+	"time"
 )
 
-
-
 // NewTelegramNotifier cria uma nova instância do notificador do Telegram
-func NewTelegramNotifier(token, chatID string) *TelegramNotifier {
+func NewTelegramNotifier(chatID string) *TelegramNotifier {
 	return &TelegramNotifier{
-		Client: telegram.NewClient(token), // Centralização da criação do cliente (Objetivo 4 e 7)
-		ChatID: chatID,
+		BotClient: telegram.NewBotClient(), // Inicializa o cliente do Telegram com o token do bot
+		ChatID:    chatID,
 	}
 }
-
 
 // Notify formata o texto do alerta e invoca o cliente da API para o envio seguro
 func (t *TelegramNotifier) Notify(ruleName string, occurrences int, windowMinutes int, sampleLog string) error {
-	if t.Client == nil || t.ChatID == "" {
-		return fmt.Errorf("credenciais do telegram incompletas ou cliente não inicializado")
-	}
-
-	// Resolve o rigor na tipagem: converte a string da base de dados para int64 de forma estrita
 	chatIDInt, err := strconv.ParseInt(t.ChatID, 10, 64)
 	if err != nil {
-		return fmt.Errorf("o chat_id configurado não é um número válido: %w", err)
+		return fmt.Errorf("chat_id inválido: %w", err)
 	}
 
-	// Formatação da mensagem de domínio (suporta HTML básico no Telegram)
-	message := fmt.Sprintf(
-		"🚨 <b>ALERTA SYSLOG: %s</b> 🚨\n\n"+
-			"⚠️ A regra disparou porque ocorreram <b>%d eventos</b> nos últimos %d minutos.\n\n"+
-			"📝 <i>Último log detetado:</i>\n<code>%s</code>\n\n"+
-			"⏱️ <i>%s</i>",
-		ruleName, occurrences, windowMinutes, truncateString(sampleLog, 150), time.Now().Format("2006-01-02 15:04:05"),
-	)
+	msgText := t.BotClient.BuildAlertMessage(ruleName, occurrences, windowMinutes, sampleLog)
 
-	// O envio agora lida nativamente com as validações de JSON, impedindo quebras (Objetivo 1)
-	err = t.Client.SendMessage(chatIDInt, message)
-	if err != nil {
-		return fmt.Errorf("falha na integração telegram: %w", err)
+	msg := t.BotClient.NewMessage(chatIDInt, msgText)
+	msg.ParseMode = t.BotClient.Parser() // Garantindo que o modo HTML seja consistente com o cliente
+
+	if _, err := t.BotClient.Bot.Send(msg); err != nil {
+		return fmt.Errorf("falha ao enviar mensagem para o Telegram: %w", err)
 	}
-
 	return nil
 }
-
 
 // NewEmailNotifier cria uma nova instância do notificador de Email
 func NewEmailNotifier(host, port, user, pass, from, to string) *EmailNotifier {
@@ -64,7 +48,7 @@ func (e *EmailNotifier) Notify(ruleName string, occurrences int, windowMinutes i
 	}
 
 	subject := fmt.Sprintf("🚨 ALERTA CRÍTICO: %s", ruleName)
-	
+
 	// Formatação rica HTML em formato de painel
 	body := fmt.Sprintf(`
 		<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
@@ -101,7 +85,6 @@ func (m *MultiNotifier) Notify(ruleName string, occurrences int, windowMinutes i
 	}
 	return nil
 }
-
 
 // truncateString corta o log se for demasiado grande para evitar limites de tamanho na mensagem
 func truncateString(str string, length int) string {

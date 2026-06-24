@@ -35,51 +35,61 @@ var (
 )
 
 func InitBot() {
-	var err error
-	bot, err = api.NewBotAPI(os.Getenv("TELEGRAM_BOT_TOKEN"))
-	if err != nil {
-		log.Panic(err)
-	}
+	botClient := &BotClient{}
+	botClient.BotClient()
+	bot = botClient.Bot
 
-	bot.Debug = false
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	botClient.Bot.Debug = false
 
 	u := api.NewUpdate(0)
 	u.Timeout = 60
 
-	parentCtx := context.Background()
-	ctx, cancel := context.WithCancel(parentCtx)
-
-	updates := bot.GetUpdatesChan(u)
-
-	go receiveUpdates(ctx, updates)
+	updates := botClient.Bot.GetUpdatesChan(u)
+	go botClient.receiveUpdates(ctx, updates)
 
 	log.Println("Bot do Telegram iniciado com sucesso!")
-
 	buf.NewReader(os.Stdin).ReadString('\n')
 	cancel()
 }
 
-func receiveUpdates(ctx context.Context, updates api.UpdatesChannel) {
+func NewBotClient() *BotClient {
+	return &BotClient{}
+}
+
+func (t *BotClient) BotClient() {
+	t.Token = os.Getenv("TG_BOT_TOKEN")
+	var err error
+	t.Bot, err = api.NewBotAPI(t.Token)
+	if err != nil {
+		log.Panic(err)
+	}
+
+}
+
+func (t *BotClient) receiveUpdates(ctx context.Context, updates api.UpdatesChannel) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case update := <-updates:
-			handleUpdate(update)
+			t.handleUpdate(update)
 		}
 	}
 }
 
-func handleUpdate(update api.Update) {
+func (t *BotClient) handleUpdate(update api.Update) {
 	switch {
 	case update.Message != nil:
-		handleMessage(update.Message)
+		t.handleMessage(update.Message)
 	case update.CallbackQuery != nil:
-		handleButton(update.CallbackQuery)
+		t.handleButton(update.CallbackQuery)
 	}
 }
 
-func handleMessage(message *api.Message) {
+func (t *BotClient) handleMessage(message *api.Message) {
 	user := message.From
 	text := message.Text
 
@@ -92,14 +102,14 @@ func handleMessage(message *api.Message) {
 	var err error
 
 	if strings.HasPrefix(text, "/") {
-		err = handleCommand(message.Chat.ID, text)
+		err = t.handleCommand(message.Chat.ID, text)
 	} else if screaming && len(text) > 0 {
-		msg := api.NewMessage(message.Chat.ID, strings.ToUpper(text))
+		msg := t.NewMessage(message.Chat.ID, strings.ToUpper(text))
 		msg.Entities = message.Entities
-		_, err = bot.Send(msg)
+		_, err = t.Bot.Send(msg)
 	} else {
-		copyMsg := api.NewCopyMessage(message.Chat.ID, message.Chat.ID, message.MessageID)
-		_, err = bot.Send(copyMsg)
+		copyMsg := t.NewCopyMessage(message.Chat.ID, message.Chat.ID, message.MessageID)
+		_, err = t.Bot.Send(copyMsg)
 	}
 
 	if err != nil {
@@ -107,50 +117,78 @@ func handleMessage(message *api.Message) {
 	}
 }
 
-func handleCommand(chatID int64, command string) error {
+func (t *BotClient) handleCommand(chatID int64, command string) error {
 	var err error
 
 	switch command {
 	case "/start":
-		msg := api.NewMessage(chatID, firstMenu)
-		msg.ParseMode = "HTML"
+		msg := t.NewMessage(chatID, "Bem-vindo ao Bot de Alertas! Use o menu abaixo para navegar.")
+		msg.ParseMode = t.Parser()
 		msg.ReplyMarkup = firstMenuMarkup
-		_, err = bot.Send(msg)
+		_, err = t.Bot.Send(msg)
 	default:
-		msg := api.NewMessage(chatID, "Comando não reconhecido.")
-		_, err = bot.Send(msg)
+		msg := t.NewMessage(chatID, "Comando não reconhecido.")
+		msg.ParseMode = t.Parser()
+		_, err = t.Bot.Send(msg)
 	}
 	return err
 }
 
-func handleButton(query *api.CallbackQuery) {
+func (t *BotClient) handleButton(query *api.CallbackQuery) {
 	var text string
 
 	markup := api.NewInlineKeyboardMarkup()
 	message := query.Message
 
-	if query.Data == configButton {
+	switch query.Data {
+	case configButton:
 		text = "Configurações do Bot:\n\n" +
 			"- Para configurar o bot, edite o arquivo .env e reinicie o serviço.\n" +
 			"- Certifique-se de que o token do bot e o chat_id estão corretos.\n" +
 			"- Use o botão 'ID do Chat' para obter seu chat_id."
-	} else if query.Data == idButton {
+	case idButton:
 		text = fmt.Sprintf("Seu ID do Chat é: <code>%d</code>", message.Chat.ID)
 	}
 
 	callbackCfg := api.NewCallback(query.ID, text)
-	bot.Send(callbackCfg)
+	t.Bot.Send(callbackCfg)
 
 	msg := api.NewEditMessageTextAndMarkup(message.Chat.ID, message.MessageID, text, markup)
-	msg.ParseMode = api.ModeHTML
-	bot.Send(msg)
+	msg.ParseMode = t.Parser()
+	t.Bot.Send(msg)
 }
 
-func SendMenu(chatID int64) error {
-	msg := api.NewMessage(chatID, firstMenu)
-	msg.ParseMode = api.ModeHTML
+func (t *BotClient) SendMenu(chatID int64) error {
+	msg := t.NewMessage(chatID, firstMenu)
+	msg.ParseMode = t.Parser()
 	msg.ReplyMarkup = firstMenuMarkup
-
-	_, err := bot.Send(msg)
+	_, err := t.Bot.Send(msg)
 	return err
+}
+
+func (t *BotClient) Parser() string {
+	if t.ParseMode == "" {
+		return api.ModeHTML
+	}
+	return t.ParseMode
+}
+
+func (t *BotClient) NewMessage(chatID int64, text string) *api.MessageConfig {
+	msg := api.NewMessage(chatID, text)
+	return &msg
+}
+
+func (t *BotClient) NewCopyMessage(chatID int64, fromChatID int64, messageID int) *api.CopyMessageConfig {
+	copyMsg := api.NewCopyMessage(chatID, fromChatID, messageID)
+	return &copyMsg
+}
+
+func (t *BotClient) BuildAlertMessage(ruleName string, occurrences int, windowMinutes int, sampleLog string) string {
+	return fmt.Sprintf(
+		"<b>🚨 ALERTA CRÍTICO</b>\n\n"+
+			"<b>Regra:</b> %s\n"+
+			"<b>Ocorrências:</b> %d\n"+
+			"<b>Janela de Tempo:</b> %d minutos\n"+
+			"<b>Exemplo de Log:</b>\n<code>%s</code>",
+		ruleName, occurrences, windowMinutes, sampleLog)
 }
