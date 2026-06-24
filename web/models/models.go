@@ -36,6 +36,8 @@ type Settings struct {
 	Error string
 	TgBotUser string
 	TgChatID string
+	NotifyTelegram bool
+	NotifyEmail bool
  }
 
  // LogPolicy representa a política de logs configurada pelo utilizador, 

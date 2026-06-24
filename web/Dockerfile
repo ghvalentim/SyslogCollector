@@ -23,6 +23,7 @@ COPY app/ ./app/
 COPY database/ ./database/
 COPY models/ ./models/
 COPY api/ ./api/
+COPY mailer/ ./mailer/
 # Compilar o binário de forma estática
 RUN CGO_ENABLED=0 GOOS=linux go build -o web main.go
 
@@ -46,5 +47,6 @@ COPY --from=builder /app/app/ ./app/
 COPY --from=builder /app/database/ ./database/
 COPY --from=builder /app/models/ ./models/
 COPY --from=builder /app/api/ ./api/
+COPY --from=builder /app/mailer/ ./mailer/
 # Executar o serviço
 CMD ["./web"]
