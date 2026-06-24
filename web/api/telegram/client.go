@@ -53,43 +53,6 @@ func NewClient(token string) *Client {
 	}
 }
 
-func (c *Client) GetChatID() (int64, error) {
-	if c.Token == "" {
-		return 0, fmt.Errorf("token do telegram não configurado no cliente")
-	}
-	offset := 0
-	for {
-		url := fmt.Sprintf("https://api.telegram.org/bot%s/getUpdates?offset=%d", c.Token, offset)
-		resp, err := c.HTTPClient.Get(url)
-		if err != nil {
-			return 0, fmt.Errorf("erro ao contactar a API do Telegram: %w", err)
-		}
-		defer resp.Body.Close()
-
-		var tgResp TelegramResponse
-		if err := json.NewDecoder(resp.Body).Decode(&tgResp); err != nil {
-			return 0, fmt.Errorf("erro ao decodificar a resposta do telegram: %w", err)
-		}
-
-		if !tgResp.Ok {
-			return 0, fmt.Errorf("a api do telegram recusou a requisição")
-		}
-
-		if len(tgResp.Result) == 0 {
-			break // Nenhum update disponível
-		}
-
-		for _, update := range tgResp.Result {
-			if update.Message.Chat.ID != 0 {
-				return update.Message.Chat.ID, nil
-			}
-			offset = update.UpdateID + 1 // Atualiza o offset para o próximo
-		}
-	}
-
-	return 0, fmt.Errorf("nenhum chat_id encontrado nos updates do bot")
-}
-
 // SendMessage envia uma mensagem para o chat especificado usando a API do Telegram.
 func (c *Client) SendMessage(chatID int64, text string) error {
 	if c.Token == "" {
