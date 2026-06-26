@@ -26,7 +26,7 @@ services:
       - log_network
 
   collector:
-    build: ./collector
+    build: ./server
     container_name: syslog_collector
     environment:
       REDIS_URL: ${REDIS_URL}

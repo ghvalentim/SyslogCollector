@@ -1,20 +1,23 @@
 package main
 
 import (
+	"syslog-web/app/logs"
+	"syslog-web/app/routes"
+	"syslog-web/data/SQL"
+	"syslog-web/data/Redis"
+	"syslog-web/app/tools"
 
-	"syslog-web/app"
-	"syslog-web/database"
 	_ "github.com/lib/pq"
 )
 
 
 func main() {
 
-
-	database.InitData()
-	app.InitServices()
-	app.InitRoutes()
-	app.InitAlerts()
+	Redis.InitRedis()
+	SQL.InitSQL()
+	logs.InitWorkers()
+	routes.InitRoutes()
+	tools.InitAlerts()
 
 
 }
