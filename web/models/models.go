@@ -30,15 +30,7 @@ type StatsResponse struct { Severities []SeverityStat `json:"severities"`; Hosts
 
 
 // Settings representa as definições da aplicação, incluindo política de retenção de logs e informações do administrador.
-type Settings struct { 
-	Retention int 
-	User string 
-	Error string
-	TgBotUser string
-	TgChatID string
-	NotifyTelegram bool
-	NotifyEmail bool
- }
+
 
  // LogPolicy representa a política de logs configurada pelo utilizador, 
  // incluindo critérios de severidade mínima e listas de aplicações, hosts e palavras-chave ignoradas.
@@ -74,6 +66,7 @@ type AlertRule struct {
 	WindowMinutes int
 	LastTriggered  sql.NullTime
 }
+
 
 
 

@@ -10,24 +10,28 @@ import (
 	"strings"
 	"syslog-web/models"
 	"encoding/json"
-
+	"log"
 	_ "github.com/lib/pq"
 )
 
 var (
-	DB  *sql.DB
-	Ctx = context.Background()
+	DB  = getDB()
+	Ctx = getContext()
 )
 
 // InitSQL inicializa a base de dados PostgreSQL, criando tabelas e colunas necessárias se não existirem, e sincroniza a política de logs para o Redis.
 func InitSQL() {
-	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_NAME"))
 	for i := 0; i < 5; i++ {
-		DB, _ = sql.Open("postgres", connStr)
-		if DB.Ping() == nil {
+		if err := DB.Ping(); err != nil {
+			log.Printf("Tentativa %d: Erro ao conectar à base de dados PostgreSQL: %v", i+1, err)
+			time.Sleep(2 * time.Second)
+		} else {
+			log.Println("Conexão com a base de dados PostgreSQL estabelecida com sucesso.")
 			break
 		}
-		time.Sleep(3 * time.Second)
+		if i == 4 {
+			log.Fatalf("Falha ao conectar à base de dados PostgreSQL após 5 tentativas.")
+		}
 	}
 
 	// Tabelas base
@@ -53,6 +57,19 @@ func InitSQL() {
 	
 }
 
+func getContext() context.Context {
+	Ctx := context.Background()
+	return Ctx
+}
+
+func getDB() *sql.DB {
+	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_NAME"))
+	DB, err := sql.Open("postgres", connStr)
+	if err != nil {
+		log.Fatalf("Erro ao conectar à base de dados PostgreSQL: %v", err)
+	}
+	return DB
+}
 
 // --- POLÍTICA DE LOGS ---
 // SyncPolicyToRedis sincroniza a política de logs da base de dados PostgreSQL para o Redis, permitindo que os workers acedam às definições atualizadas.
